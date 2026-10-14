@@ -131,7 +131,6 @@ export async function sendToChat(message, { webhook = config.chatWebhook, sa } =
 }
 
 // ── Google Chat text layout (used when posting as a user; cards aren't allowed there) ──
-const SIGN = '— 🤖 app_review_bot · Review Radar';
 const clean = (t) => String(t ?? '').replace(/[*_~`]/g, (c) => c); // keep text as-is (Chat only formats paired markers)
 const box = (t, max = 900) => '```\n' + String(t).trim().slice(0, max).replace(/```/g, "'''") + '\n```';
 const NEXT_STEP = {
@@ -178,7 +177,6 @@ export function statusCard({ app, account, channel, version, from, to, at, submi
   lines.push('', `🏢  ${clean(account?.name || app.accountId)}`, `🕒  ${fmtTime(at)}`);
   const lk = links.filter((l) => l?.url).map((l) => `<${l.url}|${l.text} ↗>`);
   if (lk.length) lines.push(`🔗  ${lk.join('   ·   ')}`);
-  lines.push('', SIGN);
   return {
     text: `${to.emoji} ${app.name} ${version || ''} – ${to.label}`,
     chatText: lines.join('\n'),
@@ -210,7 +208,6 @@ export function storeMessageCard({ app, subject, from, snippet, emailUrl, at }) 
   if (snippet) t.push(box(snippet, 700));
   t.push('', '👉 Open the email for the full details', '', `🕒  ${fmtTime(at || Date.now())}`);
   if (emailUrl) t.push(`🔗  <${emailUrl}|Open email ↗>`);
-  t.push('', SIGN);
   return {
     text: `📩 ${app ? app.name + ' – ' : ''}${subject || 'Google Play Console message'}`,
     chatText: t.join('\n'),
@@ -220,8 +217,8 @@ export function storeMessageCard({ app, subject, from, snippet, emailUrl, at }) 
 
 export function alertCard(title, text, { error, hint } = {}) {
   const chatText = error
-    ? ['⚠️  *SYNC PROBLEM*', `*${clean(title)}*`, '', box(error, 600), '', `👉 ${hint || 'Check the account access in Review Radar → Setup.'}`, '', `🕒  ${fmtTime(Date.now())}`, '', SIGN].join('\n')
-    : ['⚠️  *' + clean(title) + '*', '', String(text), '', SIGN].join('\n');
+    ? ['⚠️  *SYNC PROBLEM*', `*${clean(title)}*`, '', box(error, 600), '', `👉 ${hint || 'Check the account access in Review Radar → Setup.'}`, '', `🕒  ${fmtTime(Date.now())}`].join('\n')
+    : ['⚠️  *' + clean(title) + '*', '', String(text)].join('\n');
   return {
     text: `⚠️ ${title}`,
     chatText,

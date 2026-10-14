@@ -88,8 +88,6 @@ export function helloText(apps, accounts) {
     '📩  Any other Google Play message',
     '',
     `👀  Watching *${apps} app${apps === 1 ? '' : 's'}* across *${accounts} account${accounts === 1 ? '' : 's'}*`,
-    '',
-    '— 🤖 app_review_bot · Review Radar',
   ].join('\n');
 }
 

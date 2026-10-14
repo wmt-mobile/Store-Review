@@ -18,7 +18,6 @@ All templates are in **`src/chat.js`**, plus the "connected" message in `src/adm
 |---|---|---|
 | Store status change | `statusCard()` in `src/chat.js` | The `lines` array: headline, 📱 store line, 🔄 from → to, ⏱️ time, 📝 reason, 🏢/🕒/🔗 footer |
 | "What to do next" line per status | `NEXT_STEP` in `src/chat.js` | One line per category (`submitted`, `in_review`, `approved`, `live`, `rejected`, `action`, `removed`, `draft`, `testing`) |
-| Signature at the bottom | `SIGN` in `src/chat.js` | e.g. `— 🤖 app_review_bot · Review Radar` |
 | Other Google Play email | `storeMessageCard()` | The `t` array |
 | Sync problem alert | `alertCard()` (called from `reportError()` in `src/tracker.js`) | `chatText` and the `hint` text |
 | "Connected" test message | `helloText()` in `src/admin-api.js` | The list of lines |
