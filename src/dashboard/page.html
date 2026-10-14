@@ -1,0 +1,1404 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Review Radar</title>
+<meta name="theme-color" content="#0b0d12">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><defs><linearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22><stop offset=%220%22 stop-color=%22%236366f1%22/><stop offset=%221%22 stop-color=%22%23a855f7%22/></linearGradient></defs><rect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22url(%23g)%22/><circle cx=%2216%22 cy=%2216%22 r=%228%22 fill=%22none%22 stroke=%22white%22 stroke-width=%222.5%22/><circle cx=%2216%22 cy=%2216%22 r=%222.5%22 fill=%22white%22/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --font:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --bg:#f4f5f8; --bg-2:#eceef3; --panel:#ffffff; --panel-2:#f7f8fa; --line:#e5e7ee; --line-2:#d9dce5;
+  --text:#0f1219; --text-2:#3d4352; --muted:#6b7182; --faint:#9aa0ae;
+  --accent:#5b5bf0; --accent-2:#9b5cf6; --accent-soft:#ececfe; --ring:rgba(91,91,240,.35);
+  --shadow-sm:0 1px 2px rgba(15,18,25,.04),0 1px 3px rgba(15,18,25,.06);
+  --shadow-lg:0 24px 60px -12px rgba(15,18,25,.25),0 8px 20px -8px rgba(15,18,25,.12);
+  --c-in_review:#2f6bff; --b-in_review:#e7efff;
+  --c-submitted:#8b5cf6; --b-submitted:#f1ebff;
+  --c-approved:#0d9488; --b-approved:#dff6f2;
+  --c-live:#16a34a; --b-live:#e3f6e9;
+  --c-rejected:#e11d48; --b-rejected:#ffe8ed;
+  --c-action:#d97706; --b-action:#fef1dc;
+  --c-removed:#be123c; --b-removed:#fde4ea;
+  --c-draft:#64748b; --b-draft:#eef1f5;
+  --c-testing:#4f6d92; --b-testing:#e8eef6;
+  --c-none:#9aa0ae; --b-none:#f1f2f5;
+  --sidebar:#fbfbfd;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b0d12; --bg-2:#10131a; --panel:#13161e; --panel-2:#181c25; --line:#232835; --line-2:#2d3342;
+    --text:#eef0f5; --text-2:#c5cad6; --muted:#8e95a6; --faint:#626a7c;
+    --accent:#8183ff; --accent-2:#b98cff; --accent-soft:#1d1f3d; --ring:rgba(129,131,255,.4);
+    --shadow-sm:0 1px 0 rgba(255,255,255,.02) inset; --shadow-lg:0 30px 70px -10px rgba(0,0,0,.7);
+    --c-in_review:#6e9bff; --b-in_review:#152040; --c-submitted:#b294ff; --b-submitted:#221a3e;
+    --c-approved:#2dd4bf; --b-approved:#0c2b29; --c-live:#4ade80; --b-live:#0f2a1a;
+    --c-rejected:#fb7190; --b-rejected:#351621; --c-action:#fbbf24; --b-action:#33260c;
+    --c-removed:#f472b6; --b-removed:#36152a; --c-draft:#94a3b8; --b-draft:#1c212b;
+    --c-testing:#93b4dd; --b-testing:#18212e; --c-none:#6b7385; --b-none:#191d26;
+    --sidebar:#0e1016;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b0d12; --bg-2:#10131a; --panel:#13161e; --panel-2:#181c25; --line:#232835; --line-2:#2d3342;
+  --text:#eef0f5; --text-2:#c5cad6; --muted:#8e95a6; --faint:#626a7c;
+  --accent:#8183ff; --accent-2:#b98cff; --accent-soft:#1d1f3d; --ring:rgba(129,131,255,.4);
+  --shadow-sm:0 1px 0 rgba(255,255,255,.02) inset; --shadow-lg:0 30px 70px -10px rgba(0,0,0,.7);
+  --c-in_review:#6e9bff; --b-in_review:#152040; --c-submitted:#b294ff; --b-submitted:#221a3e;
+  --c-approved:#2dd4bf; --b-approved:#0c2b29; --c-live:#4ade80; --b-live:#0f2a1a;
+  --c-rejected:#fb7190; --b-rejected:#351621; --c-action:#fbbf24; --b-action:#33260c;
+  --c-removed:#f472b6; --b-removed:#36152a; --c-draft:#94a3b8; --b-draft:#1c212b;
+  --c-testing:#93b4dd; --b-testing:#18212e; --c-none:#6b7385; --b-none:#191d26;
+  --sidebar:#0e1016;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 var(--font);font-feature-settings:"cv11","ss01";font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:inherit;text-decoration:none}
+code{font:12px ui-monospace,SFMono-Regular,Menlo,monospace}
+svg.i{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+svg.i.sm{width:15px;height:15px}
+svg.i.xs{width:13px;height:13px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+::selection{background:var(--ring)}
+
+/* ── shell ── */
+.shell{display:grid;grid-template-columns:252px minmax(0,1fr);min-height:100vh}
+.side{position:sticky;top:0;height:100vh;background:var(--sidebar);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:18px 14px}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 18px}
+.logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;box-shadow:0 6px 18px -6px var(--accent)}
+.logo i{width:16px;height:16px;border:2.5px solid #fff;border-radius:50%;position:relative}
+.logo i::after{content:"";position:absolute;inset:3.5px;border-radius:50%;background:#fff}
+.brand b{font-size:15.5px;letter-spacing:-.01em;display:block}
+.brand span{font-size:11.5px;color:var(--muted)}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);font-weight:600;padding:14px 10px 6px}
+.nav a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;color:var(--text-2);font-weight:500;transition:background .12s,color .12s}
+.nav a:hover{background:var(--bg-2);color:var(--text)}
+.nav a.on{background:var(--accent-soft);color:var(--accent)}
+.nav a .ct{margin-left:auto;font-size:11.5px;font-weight:600;padding:1px 7px;border-radius:999px;background:var(--bg-2);color:var(--muted)}
+.nav a.on .ct{background:var(--panel);color:var(--accent)}
+.nav a .ct.hot{background:var(--b-rejected);color:var(--c-rejected)}
+.side-foot{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding-top:14px;border-top:1px solid var(--line)}
+.live{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);padding:0 6px}
+.pulse{width:8px;height:8px;border-radius:50%;background:var(--c-live);animation:pulse 2.4s infinite;flex:none}
+.pulse.bad{background:var(--c-rejected);animation:none}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--c-live) 60%,transparent)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.side-btns{display:flex;gap:6px}
+.ibtn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:34px;padding:0 11px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--text-2);font-weight:500;font-size:13px;transition:border-color .12s,background .12s;white-space:nowrap}
+.ibtn:hover{border-color:var(--line-2);background:var(--panel-2);color:var(--text)}
+.ibtn.sq{width:34px;padding:0}
+.ibtn.grow{flex:1}
+.ibtn.primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;border-color:transparent}
+.ibtn.primary:hover{filter:brightness(1.06)}
+.ibtn.on{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.ibtn[disabled]{opacity:.6;cursor:default}
+.spin svg{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+main{min-width:0;padding:0 28px 80px}
+.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;padding:16px 0 14px;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:saturate(1.6) blur(12px);-webkit-backdrop-filter:saturate(1.6) blur(12px);flex-wrap:wrap}
+.topbar h1{font-size:21px;letter-spacing:-.02em;margin:0;font-weight:650}
+.topbar .grow{flex:1}
+.searchbtn{display:flex;align-items:center;gap:8px;height:36px;padding:0 10px 0 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--faint);min-width:250px;box-shadow:var(--shadow-sm)}
+.searchbtn:hover{border-color:var(--line-2)}
+.searchbtn span{flex:1;text-align:left}
+kbd{font:600 11px var(--font);padding:2px 6px;border-radius:5px;border:1px solid var(--line);background:var(--panel-2);color:var(--muted)}
+.seg{display:inline-flex;padding:3px;border-radius:10px;background:var(--bg-2);border:1px solid var(--line)}
+.seg button{border:0;background:none;height:28px;padding:0 11px;border-radius:7px;color:var(--muted);font-weight:500;font-size:13px;display:inline-flex;align-items:center;gap:6px}
+.seg button.on{background:var(--panel);color:var(--text);box-shadow:var(--shadow-sm)}
+.sel{height:36px;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:0 30px 0 12px;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239aa0ae' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;max-width:220px;box-shadow:var(--shadow-sm)}
+.sel:focus{outline:2px solid var(--ring)}
+
+.banner{display:flex;gap:12px;align-items:center;padding:11px 14px;border-radius:12px;border:1px solid color-mix(in srgb,var(--bc,var(--c-action)) 35%,var(--line));background:var(--bb,var(--b-action));color:var(--text);margin-bottom:12px;font-size:13px}
+.banner>svg{color:var(--bc,var(--c-action))}
+.banner.err{--bc:var(--c-rejected);--bb:var(--b-rejected)}
+.banner.info{--bc:var(--c-submitted);--bb:var(--b-submitted)}
+.banner .grow{flex:1}
+.banner b{font-weight:600}
+
+/* ── cards ── */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow-sm)}
+.card-h{display:flex;align-items:center;gap:10px;padding:15px 18px 0;flex-wrap:wrap}
+.card-h h3{font-size:14.5px;margin:0;font-weight:600;letter-spacing:-.005em}
+.card-h .sub{color:var(--muted);font-size:12.5px}
+.card-h .grow{flex:1}
+.link{color:var(--accent);font-weight:500;font-size:13px;display:inline-flex;gap:4px;align-items:center;background:none;border:0;padding:0}
+.link:hover{text-decoration:underline}
+
+.hello{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin:4px 0 18px}
+.hello h2{margin:0;font-size:26px;letter-spacing:-.025em;font-weight:650}
+.hello p{margin:4px 0 0;color:var(--muted);font-size:14px}
+.hello p b{color:var(--text);font-weight:600}
+
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:14px}
+.kpi{position:relative;overflow:hidden;padding:16px 18px;text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:16px;box-shadow:var(--shadow-sm);transition:transform .15s,border-color .15s,box-shadow .15s}
+.kpi:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--k) 40%,var(--line));box-shadow:0 10px 30px -14px color-mix(in srgb,var(--k) 60%,transparent)}
+.kpi::after{content:"";position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--k) 18%,transparent),transparent 70%);pointer-events:none}
+.kpi .ic{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:color-mix(in srgb,var(--k) 14%,transparent);color:var(--k);margin-bottom:12px}
+.kpi .n{font-size:32px;font-weight:700;letter-spacing:-.035em;line-height:1}
+.kpi .l{color:var(--text-2);font-weight:500;margin-top:6px}
+.kpi .f{color:var(--muted);font-size:12px;margin-top:2px;min-height:18px}
+
+.stats{display:grid;grid-template-columns:1.3fr repeat(3,minmax(0,1fr)) 1fr;margin-bottom:18px;overflow:hidden}
+.stat{padding:14px 18px;border-right:1px solid var(--line);display:flex;flex-direction:column;justify-content:center;min-width:0}
+.stat:last-child{border-right:0}
+.stat .l{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.stat .v{font-size:19px;font-weight:650;letter-spacing:-.02em;margin-top:2px}
+.stat .s{font-size:11.5px;color:var(--faint)}
+.ringwrap{display:flex;gap:12px;align-items:center}
+.ring{--p:0;width:48px;height:48px;border-radius:50%;background:conic-gradient(var(--c-live) calc(var(--p)*1%),var(--b-rejected) 0);display:grid;place-items:center;flex:none}
+.ring::before{content:"";width:36px;height:36px;border-radius:50%;background:var(--panel);grid-area:1/1}
+.ring span{grid-area:1/1;font-size:11.5px;font-weight:650}
+
+.two{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:18px;align-items:start}
+.stack{display:flex;flex-direction:column;gap:18px;min-width:0}
+
+/* pipeline */
+.board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:14px 16px 16px}
+.col{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:10px;min-width:0;display:flex;flex-direction:column;gap:8px}
+.col-h{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--text-2);padding:2px 4px 4px}
+.col-h .dot{width:8px;height:8px;border-radius:50%;background:var(--k)}
+.col-h .ct{margin-left:auto;font-size:11.5px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:0 7px}
+.tcard{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;transition:border-color .12s,transform .12s;text-align:left;width:100%}
+.tcard:hover{border-color:var(--line-2);transform:translateY(-1px)}
+.tcard .row{display:flex;gap:9px;align-items:center}
+.tcard .nm{font-weight:600;font-size:13px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tcard .meta{font-size:11.5px;color:var(--muted);display:flex;gap:5px;align-items:center;white-space:nowrap;overflow:hidden}
+.tcard .foot{display:flex;align-items:center;gap:8px;margin-top:9px;font-size:11.5px;color:var(--muted)}
+.sla{flex:1;height:5px;border-radius:99px;background:var(--bg-2);overflow:hidden;min-width:40px}
+.sla i{display:block;height:100%;border-radius:99px;background:var(--k,var(--accent))}
+.tcard .lbl{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--c);font-weight:600}
+.col .more{font-size:12px;color:var(--muted);text-align:center;padding:4px;border:0;background:none}
+.col .more:hover{color:var(--accent)}
+.col .none{font-size:12px;color:var(--faint);text-align:center;padding:16px 6px;border:1px dashed var(--line-2);border-radius:10px}
+
+/* feed */
+.feed{list-style:none;margin:0;padding:8px 8px 10px}
+.feed li{display:flex;gap:11px;padding:9px 10px;border-radius:10px;cursor:pointer}
+.feed li:hover{background:var(--panel-2)}
+.feed .ev{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--b);color:var(--c);flex:none;font-size:14px}
+.feed .t1{font-size:13px;line-height:1.35}
+.feed .t1 b{font-weight:600}
+.feed .t2{font-size:11.5px;color:var(--faint);margin-top:2px}
+.feed .t2 svg{vertical-align:-2px}
+.feed .new{width:7px;height:7px;border-radius:50%;background:var(--accent);margin-top:6px;flex:none}
+
+.acclist{padding:6px 8px 10px}
+.accrow{display:flex;gap:10px;align-items:center;padding:9px 10px;border-radius:10px;cursor:pointer}
+.accrow:hover{background:var(--panel-2)}
+.accrow .nm{font-weight:600;font-size:13px}
+.accrow .mt{font-size:11.5px;color:var(--muted)}
+.accrow .st{margin-left:auto}
+
+/* chips, badges */
+.badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:7px;font-size:12px;font-weight:600;white-space:nowrap;color:var(--c);background:var(--b)}
+.badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.9;flex:none}
+.badge.sm{height:21px;padding:0 7px;font-size:11.5px}
+.chip{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:6px;background:var(--bg-2);color:var(--text-2);font-size:11.5px;font-weight:500;white-space:nowrap}
+.dotok,.dotbad,.dotwarn{width:8px;height:8px;border-radius:50%;display:inline-block}
+.dotok{background:var(--c-live)} .dotbad{background:var(--c-rejected)} .dotwarn{background:var(--c-action)}
+
+.ico{width:36px;height:36px;border-radius:10px;flex:none;display:grid;place-items:center;font-weight:700;font-size:15px;color:#fff;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.ico.sm{width:28px;height:28px;border-radius:8px;font-size:12.5px}
+.ico.lg{width:52px;height:52px;border-radius:14px;font-size:22px}
+.ico.plain{background:var(--panel-2);color:var(--text-2);border:1px solid var(--line);box-shadow:none}
+.ico img{width:100%;height:100%;object-fit:cover}
+
+/* lists */
+.list{display:flex;flex-direction:column;overflow:hidden}
+.lrow{display:grid;grid-template-columns:minmax(200px,1.6fr) minmax(130px,1fr) minmax(150px,1fr) minmax(200px,1.3fr) 40px;gap:16px;align-items:center;padding:13px 18px;border-top:1px solid var(--line);cursor:pointer;transition:background .1s}
+.lrow:first-child{border-top:0}
+.lrow:hover{background:var(--panel-2)}
+.lrow.head{cursor:default;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:600;padding-top:11px;padding-bottom:11px}
+.lrow.head:hover{background:none}
+.appc{display:flex;gap:11px;align-items:center;min-width:0}
+.appc .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.appc .sb{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.small{font-size:12px;color:var(--muted)}
+.tiny{font-size:11.5px;color:var(--faint)}
+.timer{display:flex;flex-direction:column;gap:6px}
+.timer .v{font-weight:650;font-size:13.5px}
+.timer.warn .v{color:var(--c-action)}
+.timer.stuck .v{color:var(--c-rejected)}
+.acts{display:flex;gap:6px;justify-content:flex-end}
+
+.alerts{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px}
+.alert{padding:16px;display:flex;flex-direction:column;gap:12px;border-top:3px solid var(--c)}
+.alert .reason{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--text-2);white-space:pre-line;max-height:150px;overflow:auto}
+.alert .reason.muted{color:var(--muted);font-style:italic}
+.alert .bar{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;align-items:center}
+
+.groups{display:flex;flex-direction:column;gap:24px}
+.gh{display:flex;align-items:center;gap:10px;margin:0 0 10px}
+.gh .sic{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:var(--panel);border:1px solid var(--line)}
+.gh b{font-size:15px;font-weight:600}
+.gh .grow{flex:1}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.acard{padding:14px;transition:transform .14s,border-color .14s,box-shadow .14s;display:flex;flex-direction:column;gap:12px;text-align:left;overflow:hidden;position:relative}
+.acard:hover{transform:translateY(-2px);border-color:var(--line-2);box-shadow:0 14px 30px -18px rgba(0,0,0,.35)}
+.acard .stripe{position:absolute;left:0;right:0;top:0;height:3px;background:var(--k)}
+.acard .chs{display:flex;flex-direction:column;gap:7px}
+.chl{display:flex;align-items:center;gap:8px;font-size:12.5px;min-width:0}
+.chl .lb{color:var(--muted);width:94px;flex:none;font-size:12px}
+.chl .vv{margin-left:auto;font-size:11.5px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:96px}
+.chl.nosub .lb{opacity:.7}
+
+table.t{width:100%;border-collapse:collapse}
+table.t th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:600;text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.t td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.t tr:last-child td{border-bottom:0}
+table.t tbody tr{cursor:pointer}
+table.t tbody tr:hover td{background:var(--panel-2)}
+.cellv{font-size:11.5px;color:var(--faint);margin-top:3px;white-space:nowrap}
+.scrollx{overflow-x:auto}
+
+.accgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px;align-items:start}
+.acc{padding:18px;display:flex;flex-direction:column;gap:14px}
+.acc .top{display:flex;gap:12px;align-items:center}
+.acc .sic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;background:var(--panel-2);border:1px solid var(--line);flex:none}
+.acc .sic svg{width:20px;height:20px}
+.acc .nm{font-weight:650;font-size:15px}
+.acc .kv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.acc .kv div{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.acc .kv b{display:block;font-size:17px;font-weight:650}
+.acc .kv span{font-size:11.5px;color:var(--muted)}
+.acc .err{background:var(--b-rejected);color:var(--c-rejected);border-radius:10px;padding:10px 12px;font-size:12.5px}
+.acc .err.warn{background:var(--b-action);color:var(--c-action)}
+.acc .err .hint{color:var(--text-2);margin-top:4px}
+.acc .ok{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}
+
+.day{font-size:11.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin:16px 10px 4px}
+.day:first-child{margin-top:4px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+.fchip{height:30px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--text-2);font-size:12.5px;font-weight:500;display:inline-flex;align-items:center;gap:7px}
+.fchip .d{width:7px;height:7px;border-radius:50%;background:var(--c)}
+.fchip.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+
+.empty{padding:44px 20px;text-align:center;color:var(--muted)}
+.empty .em{font-size:34px;margin-bottom:8px}
+.empty b{display:block;color:var(--text);font-size:15px;margin-bottom:4px}
+
+.sk{background:linear-gradient(90deg,var(--bg-2) 25%,var(--panel-2) 37%,var(--bg-2) 63%);background-size:400% 100%;animation:sk 1.3s ease infinite;border-radius:14px}
+@keyframes sk{0%{background-position:100% 50%}100%{background-position:0 50%}}
+
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(8,10,15,.45);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .2s;z-index:50}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(500px,100vw);background:var(--panel);border-left:1px solid var(--line);box-shadow:var(--shadow-lg);transform:translateX(102%);transition:transform .25s cubic-bezier(.2,.8,.2,1);z-index:51;display:flex;flex-direction:column;visibility:hidden}
+.drawer.on{transform:none;visibility:visible}
+.dr-h{padding:20px 20px 16px;border-bottom:1px solid var(--line);display:flex;gap:14px;align-items:flex-start}
+.dr-h .nm{font-size:18px;font-weight:650;letter-spacing:-.015em}
+.dr-h .sb{font-size:12.5px;color:var(--muted);display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:3px}
+.dr-b{padding:18px 20px 30px;overflow:auto;flex:1}
+.dr-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.sect{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--faint);font-weight:600;margin:4px 0 10px}
+.chgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px}
+.chbox{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--panel-2);display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.chbox .h{font-size:12px;color:var(--muted);font-weight:500}
+.chbox .badge{white-space:normal;height:auto;min-height:24px;padding:3px 9px}
+.chbox .reason{font-size:12px;color:var(--text-2);white-space:pre-line;border-top:1px dashed var(--line-2);padding-top:6px;width:100%}
+.tl{list-style:none;margin:0;padding:0;position:relative}
+.tl::before{content:"";position:absolute;left:11px;top:6px;bottom:6px;width:2px;background:var(--line)}
+.tl li{position:relative;padding:0 0 16px 34px}
+.tl .nd{position:absolute;left:4px;top:3px;width:16px;height:16px;border-radius:50%;background:var(--b);border:2px solid var(--panel);box-shadow:0 0 0 2px var(--c)}
+.tl .w{font-size:13px}
+.tl .w b{font-weight:600}
+.tl .d{font-size:11.5px;color:var(--faint)}
+.tl .r{font-size:12px;color:var(--text-2);white-space:pre-line;margin-top:5px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
+
+/* palette */
+.pal{position:fixed;inset:0;z-index:60;display:none;align-items:flex-start;justify-content:center;padding:12vh 16px 16px;background:rgba(8,10,15,.5);backdrop-filter:blur(3px)}
+.pal.on{display:flex}
+.pal-box{width:min(620px,100%);background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow-lg);overflow:hidden;animation:pop .16s ease}
+@keyframes pop{from{transform:scale(.98) translateY(-6px);opacity:0}}
+.pal-in{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line);color:var(--faint)}
+.pal-in input{flex:1;border:0;background:none;outline:none;font-size:15.5px;color:var(--text);min-width:0}
+.pal-list{max-height:min(420px,55vh);overflow:auto;padding:6px}
+.pal-sec{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--faint);font-weight:600;padding:10px 10px 4px}
+.pal-it{display:flex;gap:11px;align-items:center;padding:8px 10px;border-radius:10px;cursor:pointer}
+.pal-it.on{background:var(--accent-soft)}
+.pal-it .nm{font-weight:500}
+.pal-it .sb{font-size:12px;color:var(--muted);display:flex;gap:4px;align-items:center}
+.pal-it .rt{margin-left:auto}
+.pal-foot{display:flex;gap:14px;padding:9px 14px;border-top:1px solid var(--line);font-size:11.5px;color:var(--faint);flex-wrap:wrap}
+
+.toasts{position:fixed;right:18px;bottom:18px;z-index:70;display:flex;flex-direction:column;gap:8px;max-width:min(380px,calc(100vw - 32px))}
+.toast{display:flex;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 13px;box-shadow:var(--shadow-lg);font-size:13px;animation:tin .22s ease}
+.toast.out{animation:tout .2s ease forwards}
+@keyframes tin{from{transform:translateY(10px);opacity:0}}
+@keyframes tout{to{transform:translateY(10px);opacity:0}}
+
+.mnav{display:none}
+
+@media (max-width:1280px){
+  .two{grid-template-columns:minmax(0,1fr)}
+  .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .stat:nth-child(3){border-right:0}
+  .stat:nth-child(n+4){border-top:1px solid var(--line)}
+}
+@media (max-width:1100px){
+  .board{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .lrow{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,1.2fr) 40px}
+  .lrow>:nth-child(2){display:none}
+}
+@media (max-width:860px){
+  .shell{grid-template-columns:minmax(0,1fr)}
+  .side{display:none}
+  main{padding:0 16px calc(84px + env(safe-area-inset-bottom))}
+  .topbar h1{font-size:19px;width:100%}
+  .searchbtn{min-width:0;flex:1 1 100%}
+  .searchbtn kbd{display:none}
+  .sel{flex:1;max-width:none}
+  .mnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;background:color-mix(in srgb,var(--panel) 92%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+  .mnav a{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;color:var(--muted);padding:5px 0;border-radius:10px;position:relative;font-weight:500}
+  .mnav a.on{color:var(--accent)}
+  .mnav a .ct{position:absolute;top:0;right:calc(50% - 20px);font-size:9.5px;font-weight:700;background:var(--c-rejected);color:#fff;border-radius:99px;padding:0 5px;line-height:15px}
+  .hello h2{font-size:22px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stat{border-right:1px solid var(--line)!important;border-top:1px solid var(--line)}
+  .stat:nth-child(2n+1){border-right:0!important}
+  .stat:first-child{grid-column:1/-1;border-right:0!important;border-top:0}
+  .lrow{grid-template-columns:minmax(0,1fr) auto;gap:8px 12px}
+  .lrow.head{display:none}
+  .lrow:nth-child(2){border-top:0}
+  .lrow>:nth-child(3){order:3}
+  .lrow>:nth-child(4){grid-column:1/-1;order:4}
+  .lrow>:nth-child(5){display:none}
+  .alerts,.accgrid,.chgrid{grid-template-columns:minmax(0,1fr)}
+  .toasts{bottom:calc(76px + env(safe-area-inset-bottom));right:16px}
+}
+@media (max-width:560px){
+  .board{grid-template-columns:minmax(0,1fr)}
+  .kpi .n{font-size:27px}
+  .kpis{gap:10px}
+  .kpi{padding:14px}
+  .grid{grid-template-columns:minmax(0,1fr)}
+  .seg button{padding:0 9px}
+}
+
+/* admin */
+.me{display:flex;gap:10px;align-items:center;padding:4px 6px 8px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.meav{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;font-weight:700;font-size:13px;display:grid;place-items:center;flex:none}
+.mei{min-width:0;flex:1}
+.mei b{display:block;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mei span{font-size:11px;color:var(--faint)}
+
+.spaces{display:flex;flex-direction:column;gap:6px;margin:4px 0 8px}
+.space{display:flex;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:10px;cursor:pointer}
+.space.on{border-color:var(--accent);background:var(--accent-soft)}
+.space .nm{font-weight:600}
+.space .tiny{margin-left:auto}
+
+.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.ell code{white-space:nowrap}
+.accgrid.eq{align-items:stretch}
+.accgrid.eq .acc>:last-child{margin-top:auto}
+.acc .top>div{min-width:0}
+
+.gmail{padding:4px 20px}
+.gstep{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--line)}
+.gnum{width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:700;font-size:12.5px;flex:none}
+.gnum.done{background:var(--b-live);color:var(--c-live)}
+.gbody{flex:1;min-width:0}
+.gtitle{font-weight:600;font-size:14px;display:flex;align-items:center;gap:6px;margin:2px 0 6px}
+.infob{width:22px;height:22px;border-radius:50%;border:0;background:none;color:var(--faint);display:inline-grid;place-items:center;padding:0}
+.infob:hover{color:var(--accent);background:var(--accent-soft)}
+.infobox{display:none;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:4px 14px;margin:2px 0 10px;font-size:13px;color:var(--text-2)}
+.infobox.on{display:block;animation:tin .18s ease}
+.infobox ol{margin:8px 0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.infobox a{color:var(--accent)}
+.uri{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 9px;border-radius:7px;background:var(--bg-2)}
+.gform{display:flex;gap:8px;flex-wrap:wrap;padding:6px 0}
+.gform .inp{min-width:220px}
+.gbtn{height:40px;padding:0 16px 0 6px;border-radius:999px;border:1px solid var(--line-2);background:var(--panel);font-weight:600;display:inline-flex;gap:10px;align-items:center}
+.gbtn:hover{border-color:var(--accent)}
+.gbtn[disabled]{opacity:.5;cursor:default}
+.gg{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:800;color:#fff;background:conic-gradient(#ea4335 0 25%,#fbbc05 0 50%,#34a853 0 75%,#4285f4 0)}
+.gavatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#4285f4,#34a853);color:#fff;font-weight:700;display:grid;place-items:center;flex:none}
+.gtest{margin-top:10px;border:1px solid var(--line);border-radius:12px;padding:2px 12px}
+.gmail-row{display:flex;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+.gmail-row:first-child{border-top:0}
+.gmail-row .t1{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.sect-h{display:flex;align-items:flex-end;gap:12px;margin:0 0 12px}
+.sect-h>div{flex:1}
+.sect-h h3{margin:0;font-size:16px;font-weight:650;letter-spacing:-.01em}
+.sect-h p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.pad-l{padding:6px 20px}
+.frow{display:flex;align-items:center;gap:16px;padding:14px 0;border-top:1px solid var(--line)}
+.frow:first-child{border-top:0}
+.flabel{flex:1;min-width:0}
+.flabel b{display:block;font-weight:600;font-size:13.5px}
+.flabel span{font-size:12.5px;color:var(--muted)}
+.inp{height:36px;border:1px solid var(--line);border-radius:9px;background:var(--panel);padding:0 11px;flex:1;min-width:0}
+.inp.sm{height:30px;font-size:13px}
+.inp:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--ring)}
+.inp.mono{font-family:ui-monospace,Menlo,monospace;font-size:12.5px}
+.ibtn.sm{height:30px;font-size:12.5px;padding:0 10px}
+.note{font-size:13px;padding:9px 12px;border-radius:10px;margin:0 0 12px}
+.note.ok{background:var(--b-live);color:var(--c-live)}
+.note.bad{background:var(--b-rejected);color:var(--c-rejected)}
+.pad-l .tiny{padding:0 0 14px}
+.sw{width:38px;height:22px;border-radius:99px;background:var(--line-2);position:relative;border:0;flex:none;transition:background .15s;padding:0}
+.sw::after{content:"";position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:3px;left:3px;transition:left .15s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.sw.on{background:var(--accent)}
+.sw.on::after{left:19px}
+.sw[disabled]{opacity:.4;cursor:default}
+.mbar{display:flex;gap:8px;padding:14px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap;align-items:center}
+.msearch{position:relative;flex:1;min-width:200px;display:flex}
+.msearch svg{position:absolute;left:11px;top:11px;color:var(--faint)}
+.msearch .inp{padding-left:32px}
+.mrow{display:grid;grid-template-columns:minmax(220px,1.6fr) minmax(160px,1.4fr) 70px 70px 130px;gap:14px;align-items:center;padding:12px 16px;border-top:1px solid var(--line)}
+.mrow.head{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:600;border-top:0;padding-top:10px;padding-bottom:10px}
+.mrow.off .appc,.mrow.off .mchans{opacity:.5}
+.mchans{display:flex;gap:6px;flex-wrap:wrap;min-width:0}
+.alog{list-style:none;margin:0;padding:0}
+.alog li{display:flex;gap:14px;align-items:flex-start;padding:10px 12px;border-radius:10px;border-left:3px solid transparent}
+.alog li:hover{background:var(--panel-2)}
+.alog li.lv-warn{border-left-color:var(--c-action)}
+.alog li.lv-error{border-left-color:var(--c-rejected)}
+.alog .tm{font-size:12px;color:var(--faint);width:42px;flex:none;padding-top:1px;font-variant-numeric:tabular-nums}
+.alog .t1{font-size:13.5px;font-weight:500}
+.alog .tgt{color:var(--muted);font-weight:500}
+.alog .det{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:3px;word-break:break-word}
+.alog .det b{color:var(--faint);font-weight:500}
+.alog .actor{font-size:11.5px;color:var(--faint);padding:2px 8px;border-radius:99px;background:var(--bg-2);flex:none}
+@media (max-width:860px){
+  .mrow{grid-template-columns:minmax(0,1fr) auto auto;gap:10px}
+  .mrow.head{display:none}
+  .mrow>:nth-child(2),.mrow>:nth-child(5){display:none}
+  .frow{flex-wrap:wrap}
+  .sect-h{flex-wrap:wrap}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="side">
+    <div class="brand"><div class="logo"><i></i></div><div><b>Review Radar</b><span>App Store · TestFlight · Play</span></div></div>
+    <nav class="nav" id="nav"></nav>
+    <div class="side-foot">
+      <div class="me" id="me" hidden><span class="meav" id="meav"></span><div class="mei"><b id="meEmail"></b><span>Signed in</span></div><button class="ibtn sq" id="logout" title="Sign out"><svg class="i sm"><use href="#i-logout"/></svg></button></div>
+      <div class="live"><span class="pulse" id="pulse"></span><span id="liveTxt">Connecting…</span></div>
+      <div class="side-btns">
+        <button class="ibtn grow" id="refresh" title="Poll every account now (R)"><svg class="i sm"><use href="#i-refresh"/></svg>Refresh</button>
+        <button class="ibtn sq" id="notif" title="Desktop alerts for new changes"><svg class="i sm"><use href="#i-bell"/></svg></button>
+        <button class="ibtn sq" id="theme" title="Toggle theme (T)"><svg class="i sm"><use href="#i-moon"/></svg></button>
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <h1 id="title">Overview</h1>
+      <div class="grow"></div>
+      <button class="searchbtn" id="openPal"><svg class="i sm"><use href="#i-search"/></svg><span>Search apps…</span><kbd>Ctrl K</kbd></button>
+      <div class="seg" id="storeSeg">
+        <button data-v="">All</button>
+        <button data-v="apple"><svg class="i xs" style="fill:currentColor;stroke:none"><use href="#i-apple"/></svg>iOS</button>
+        <button data-v="google"><svg class="i xs" style="fill:currentColor;stroke:none"><use href="#i-play"/></svg>Android</button>
+      </div>
+      <select class="sel" id="accSel" aria-label="Account"><option value="">All accounts</option></select>
+    </div>
+    <div id="banners"></div>
+    <div id="view"></div>
+  </main>
+</div>
+
+<nav class="mnav" id="mnav"></nav>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true"></aside>
+
+<div class="pal" id="pal">
+  <div class="pal-box" role="dialog" aria-label="Search">
+    <div class="pal-in"><svg class="i"><use href="#i-search"/></svg><input id="palIn" placeholder="Search apps, bundle IDs, versions, or jump to…" autocomplete="off"><kbd>Esc</kbd></div>
+    <div class="pal-list" id="palList"></div>
+    <div class="pal-foot"><span><kbd>↑</kbd> <kbd>↓</kbd> navigate</span><span><kbd>↵</kbd> open</span><span><kbd>1</kbd>–<kbd>6</kbd> pages · <kbd>R</kbd> refresh · <kbd>T</kbd> theme</span></div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.7 18-8-14a2 2 0 0 0-3.5 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3Z"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-apps" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/></symbol>
+  <symbol id="i-building" viewBox="0 0 24 24"><rect x="4" y="2.5" width="16" height="19" rx="2"/><path d="M9 21.5v-4h6v4M8 7h.01M12 7h.01M16 7h.01M8 11h.01M12 11h.01M16 11h.01"/></symbol>
+  <symbol id="i-activity" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-9-9 9.8 9.8 0 0 0-6.7 2.7L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.8 9.8 0 0 0 6.7-2.7L21 16"/><path d="M16 16h5v5"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7.5"/><path d="m20.5 20.5-4.2-4.2"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M22 11.1V12a10 10 0 1 1-5.9-9.1"/><path d="M22 4 12 14l-3-3"/></symbol>
+  <symbol id="i-rocket" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.2 2.2 0 0 0-2.9-.1Z"/><path d="m12 15-3-3a22 22 0 0 1 2-4A12.9 12.9 0 0 1 22 2c0 2.7-.8 7.5-6 11a22.4 22.4 0 0 1-4 2Z"/><path d="M9 12H4s.6-3 2-4c1.6-1.1 5 0 5 0M12 15v5s3-.6 4-2c1.1-1.6 0-5 0-5"/></symbol>
+  <symbol id="i-hourglass" viewBox="0 0 24 24"><path d="M5 22h14M5 2h14M17 22v-4.2a2 2 0 0 0-.6-1.4L12 12l-4.4 4.4a2 2 0 0 0-.6 1.4V22M7 2v4.2a2 2 0 0 0 .6 1.4L12 12l4.4-4.4a2 2 0 0 0 .6-1.4V2"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M12.2 2h-.4a2 2 0 0 0-2 2v.2a2 2 0 0 1-1 1.7l-.4.3a2 2 0 0 1-2 0l-.2-.1a2 2 0 0 0-2.7.7l-.2.4a2 2 0 0 0 .7 2.7l.2.1a2 2 0 0 1 1 1.7v.5a2 2 0 0 1-1 1.8l-.2.1a2 2 0 0 0-.7 2.7l.2.4a2 2 0 0 0 2.7.7l.2-.1a2 2 0 0 1 2 0l.4.3a2 2 0 0 1 1 1.7v.2a2 2 0 0 0 2 2h.4a2 2 0 0 0 2-2v-.2a2 2 0 0 1 1-1.7l.4-.3a2 2 0 0 1 2 0l.2.1a2 2 0 0 0 2.7-.7l.2-.4a2 2 0 0 0-.7-2.7l-.2-.1a2 2 0 0 1-1-1.7v-.5a2 2 0 0 1 1-1.8l.2-.1a2 2 0 0 0 .7-2.7l-.2-.4a2 2 0 0 0-2.7-.7l-.2.1a2 2 0 0 1-2 0l-.4-.3a2 2 0 0 1-1-1.7V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
+  <symbol id="i-scroll" viewBox="0 0 24 24"><path d="M8 21h12a2 2 0 0 0 2-2v-2H10v2a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v3h4"/><path d="M19 17V5a2 2 0 0 0-2-2H4M14 8h-4M15 12h-5"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></symbol>
+  <symbol id="i-bell-off" viewBox="0 0 24 24"><path d="M8.7 3A6 6 0 0 1 18 8a21.3 21.3 0 0 0 .6 5M17 17H3s3-2 3-9a4.7 4.7 0 0 1 .3-1.7M10.3 21a1.9 1.9 0 0 0 3.4 0M2 2l20 20"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M9.9 4.2A10 10 0 0 1 12 4c7 0 10 8 10 8a13 13 0 0 1-1.7 2.7M6.6 6.6A13.5 13.5 0 0 0 2 12s3 8 10 8a9.7 9.7 0 0 0 5.4-1.6M2 2l20 20M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></symbol>
+  <symbol id="i-apple" viewBox="0 0 24 24"><path d="M16.37 12.6c-.02-2.2 1.8-3.26 1.88-3.31-1.03-1.5-2.62-1.7-3.18-1.72-1.35-.14-2.64.8-3.33.8-.69 0-1.74-.78-2.87-.76-1.47.02-2.83.86-3.59 2.18-1.53 2.66-.39 6.6 1.1 8.75.73 1.05 1.6 2.23 2.73 2.19 1.1-.04 1.51-.71 2.84-.71 1.32 0 1.7.71 2.86.69 1.18-.02 1.93-1.07 2.65-2.13.84-1.22 1.18-2.4 1.2-2.46-.03-.01-2.3-.88-2.32-3.5zM14.2 6.14c.6-.73 1.01-1.75.9-2.76-.87.04-1.92.58-2.54 1.31-.56.65-1.05 1.68-.92 2.67.97.08 1.96-.49 2.56-1.22z"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M4.2 2.6c-.1.2-.2.5-.2.8v17.2c0 .3.1.6.2.8l9.6-9.4-9.6-9.4Zm10.8 10.6 2.7 2.7-11.9 6.8 9.2-9.5Zm4.1-4.1 2.4 1.4c.7.4.7 1.5 0 1.9l-2.4 1.4-3-3 3-1.7Zm-1.4-.8L5.8 1.4 15 10.9l2.7-2.6Z"/></symbol>
+</svg>
+
+<script>
+(() => {
+  'use strict';
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const icon = (id, cls = 'sm') => `<svg class="i ${cls}"><use href="#i-${id}"/></svg>`;
+  const storeIcon = (s, cls = 'xs') => `<svg class="i ${cls}" style="fill:currentColor;stroke:none"><use href="#i-${s === 'apple' ? 'apple' : 'play'}"/></svg>`;
+  const LS = { get(k) { try { return localStorage.getItem('rr-' + k); } catch { return null; } }, set(k, v) { try { localStorage.setItem('rr-' + k, v); } catch {} } };
+
+  let M = null;
+  let tz = 'Asia/Kolkata';
+  let firstLoad = true;
+  let seenIds = new Set((() => { try { return JSON.parse(LS.get('seen') || '[]'); } catch { return []; } })());
+  let freshIds = new Set();
+  let openKey = null;
+
+  // ── formatting ──
+  const dur = (ms) => {
+    if (ms == null || ms < 0) return '';
+    const m = Math.floor(ms / 60000);
+    if (m < 1) return '<1m';
+    if (m < 60) return m + 'm';
+    const h = Math.floor(m / 60);
+    if (h < 24) return h + 'h ' + (m % 60) + 'm';
+    return Math.floor(h / 24) + 'd ' + (h % 24) + 'h';
+  };
+  const ago = (ts) => (!ts ? 'never' : Date.now() - ts < 60000 ? 'just now' : dur(Date.now() - ts) + ' ago');
+  const fmt = (ts) => ts ? new Intl.DateTimeFormat('en-IN', { timeZone: tz, day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(ts)) : '—';
+  const dayKey = (ts) => new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ts));
+  const dayLabel = (ts) => {
+    const k = dayKey(ts);
+    if (k === dayKey(Date.now())) return 'Today';
+    if (k === dayKey(Date.now() - 864e5)) return 'Yesterday';
+    return new Intl.DateTimeFormat('en-IN', { timeZone: tz, weekday: 'long', day: 'numeric', month: 'short' }).format(new Date(ts));
+  };
+  const hue = (s) => { let h = 7; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
+  const appIcon = (name, url, cls = '') => url
+    ? `<span class="ico ${cls}"><img src="${esc(url)}" alt="" loading="lazy"></span>`
+    : `<span class="ico ${cls}" style="background:linear-gradient(135deg,hsl(${hue(name)} 62% 56%),hsl(${(hue(name) + 40) % 360} 58% 44%))">${esc((name || '?').trim()[0]?.toUpperCase() || '?')}</span>`;
+  const badge = (c, sm = '') => `<span class="badge ${sm}" style="--c:var(--c-${c.category});--b:var(--b-${c.category})">${esc(c.label)}</span>`;
+  const chChip = (st, label) => `<span class="chip">${storeIcon(st)}${esc(label)}</span>`;
+  const accName = (id) => M.accounts.find((a) => a.id === id)?.name || id;
+  const accLabel = (id) => { const a = M.accounts.find((x) => x.id === id); return a ? `${a.name} · ${a.store === 'apple' ? 'Apple' : 'Play'}` : id; };
+  const sla = (ms) => {
+    const h = (ms || 0) / 36e5, lim = M.stuckHours || 48;
+    return { pct: Math.min(100, (h / lim) * 100), cls: h > lim ? 'stuck' : h > lim / 2 ? 'warn' : '', color: h > lim ? 'var(--c-rejected)' : h > lim / 2 ? 'var(--c-action)' : 'var(--c-in_review)' };
+  };
+  const empty = (em, t, s = '') => `<div class="empty"><div class="em">${em}</div><b>${t}</b>${s ? `<div class="small">${s}</div>` : ''}</div>`;
+
+  // ── route + filters live in the hash: #/view?store=&account= ──
+  const VIEWS = {
+    overview: { t: 'Overview', i: 'grid' },
+    review: { t: 'In review', i: 'hourglass' },
+    attention: { t: 'Needs attention', i: 'alert' },
+    apps: { t: 'All apps', i: 'apps' },
+    accounts: { t: 'Accounts', i: 'building' },
+    activity: { t: 'Activity', i: 'activity' },
+    setup: { t: 'Setup', i: 'settings', admin: true },
+    manage: { t: 'Manage apps', i: 'sliders', admin: true },
+    audit: { t: 'Audit log', i: 'scroll', admin: true },
+  };
+  const S = { view: 'overview', store: '', account: '', layout: LS.get('layout') || 'grid', actCat: '' };
+  const qs = () => { const p = new URLSearchParams(); if (S.store) p.set('store', S.store); if (S.account) p.set('account', S.account); return p.toString() ? '?' + p : ''; };
+  const readHash = () => {
+    const [path, q] = location.hash.replace(/^#\/?/, '').split('?');
+    S.view = VIEWS[path] ? path : 'overview';
+    const p = new URLSearchParams(q || '');
+    S.store = p.get('store') || '';
+    S.account = p.get('account') || '';
+  };
+  const go = (view, extra = {}) => {
+    Object.assign(S, extra);
+    const h = `#/${view}${qs()}`;
+    if (location.hash !== h) location.hash = h; else render();
+  };
+  addEventListener('hashchange', () => { const prev = S.view; readHash(); render(); if (prev !== S.view) scrollTo({ top: 0 }); });
+  const passes = (x) => (!S.store || x.store === S.store) && (!S.account || x.accountId === S.account);
+
+  // ── chrome ──
+  function renderNav() {
+    const pend = M.pending.filter(passes).length, att = M.attention.filter(passes).length;
+    const counts = { review: pend, attention: att, apps: M.apps.filter(passes).length, accounts: M.accounts.length };
+    const item = (k) => `<a href="#/${k}${qs()}" class="${S.view === k ? 'on' : ''}">${icon(VIEWS[k].i)}<span>${VIEWS[k].t}</span>${counts[k] != null ? `<span class="ct ${k === 'attention' && att ? 'hot' : ''}">${counts[k]}</span>` : ''}</a>`;
+    $('#nav').innerHTML = `<div class="nav-label">Monitor</div>${['overview', 'review', 'attention'].map(item).join('')}<div class="nav-label">Catalog</div>${['apps', 'accounts', 'activity'].map(item).join('')}${M.admin ? `<div class="nav-label">Admin</div>${['setup', 'manage', 'audit'].map(item).join('')}` : ''}`;
+    $('#mnav').innerHTML = ['overview', 'review', 'attention', 'apps', M.admin ? 'setup' : 'accounts'].map((k) =>
+      `<a href="#/${k}${qs()}" class="${S.view === k ? 'on' : ''}">${icon(VIEWS[k].i, '')}<span>${VIEWS[k].t.replace('Needs attention', 'Attention')}</span>${k === 'attention' && att ? `<span class="ct">${att}</span>` : k === 'review' && pend ? `<span class="ct" style="background:var(--c-in_review)">${pend}</span>` : ''}</a>`).join('');
+  }
+
+  function renderTop() {
+    $('#title').textContent = VIEWS[S.view].t;
+    const adminView = Boolean(VIEWS[S.view].admin);
+    $('#storeSeg').style.display = adminView ? 'none' : '';
+    $('#accSel').style.display = adminView ? 'none' : '';
+    $$('#storeSeg button').forEach((b) => b.classList.toggle('on', b.dataset.v === S.store));
+    const sel = $('#accSel');
+    const opts = '<option value="">All accounts</option>' + M.accounts.filter((a) => !S.store || a.store === S.store)
+      .map((a) => `<option value="${esc(a.id)}">${esc(a.name)} · ${a.store === 'apple' ? 'Apple' : 'Play'}</option>`).join('');
+    if (sel.dataset.sig !== opts) { sel.innerHTML = opts; sel.dataset.sig = opts; }
+    sel.value = S.account;
+    const bad = M.accounts.filter((a) => a.error);
+    const gmailOff = M.gmail && !M.gmail.enabled && M.accounts.some((a) => a.store === 'google');
+    const ban = [];
+    if (M.demo) ban.push(`<div class="banner info">${icon('sparkle')}<div class="grow"><b>You're looking at demo data.</b> Add your Apple keys, Play service account and Gmail access, then run <code>npm run check</code>.</div></div>`);
+    if (bad.length) ban.push(`<div class="banner err">${icon('alert')}<div class="grow"><b>${bad.length} account${bad.length > 1 ? 's are' : ' is'} failing:</b> ${bad.map((a) => esc(accLabel(a.id))).join(', ')}. Statuses for ${bad.length > 1 ? 'these accounts' : 'this account'} may be out of date.</div><button class="ibtn" data-go="accounts">Fix it</button></div>`);
+    if (gmailOff || M.gmail?.error) ban.push(`<div class="banner">${icon('mail')}<div class="grow"><b>Play email reader ${gmailOff ? 'not configured' : 'failing'}.</b> Google Play approvals, rejections and reasons can't be detected yet.</div></div>`);
+    $('#banners').innerHTML = ban.join('');
+    $('#pulse').classList.toggle('bad', Boolean(bad.length || gmailOff || M.gmail?.error));
+    $('#liveTxt').textContent = `Live · synced ${ago(M.generatedAt)}`;
+  }
+
+  // ── building blocks ──
+  function tcard(r) {
+    const s = sla(r.elapsedMs);
+    return `<button class="tcard" data-app="${esc(r.appKey)}">
+      <div class="row">${appIcon(r.appName, r.iconUrl, 'sm')}<div style="min-width:0;flex:1"><div class="nm">${esc(r.appName)}</div>
+      <div class="meta">${storeIcon(r.store)} ${esc(r.channelLabel)} · ${esc(r.version || '—')}</div></div></div>
+      <div class="foot">${r.elapsedMs != null
+        ? `<div class="sla" style="--k:${s.color}"><i style="width:${s.pct}%"></i></div><span style="color:${s.cls ? s.color : 'var(--text-2)'};font-weight:600">${dur(r.elapsedMs)}</span>`
+        : `<span class="lbl" style="--c:var(--c-${r.category})">${esc(r.label)}</span><span style="flex:none">${ago(r.since)}</span>`}</div>
+    </button>`;
+  }
+
+  function feedItem(e, withReason = false) {
+    return `<li data-app="${esc(e.appKey)}"><div class="ev" style="--c:var(--c-${e.category});--b:var(--b-${e.category})">${esc(e.emoji || '•')}</div>
+      <div style="min-width:0;flex:1"><div class="t1"><b>${esc(e.appName)}</b> ${esc(e.version)} <span style="color:var(--faint)">→</span> <span style="color:var(--c-${e.category});font-weight:600">${esc(e.label)}</span></div>
+      <div class="t2">${storeIcon(e.store)} ${esc(e.channelLabel)} · ${esc(e.accountName)} · ${withReason ? fmt(e.at) : ago(e.at)}</div>
+      ${withReason && e.reason ? `<div class="t2" style="color:var(--text-2);white-space:pre-line;display:block;margin-top:4px">${esc(e.reason.slice(0, 240))}</div>` : ''}</div>
+      ${freshIds.has(e.id) ? '<span class="new" title="New since your last visit"></span>' : ''}</li>`;
+  }
+
+  // ── views ──
+  function vOverview() {
+    const st = M.stats || {}, md = st.medianReviewMs || {};
+    const pend = M.pending.filter(passes), att = M.attention.filter(passes), apps = M.apps.filter(passes);
+    const inRev = pend.filter((r) => r.category === 'in_review'), waiting = pend.filter((r) => r.category === 'submitted');
+    const approved = [];
+    for (const a of apps) for (const c of Object.values(a.channels)) if (c.category === 'approved') approved.push({ appKey: a.key, appName: a.name, iconUrl: a.iconUrl, store: a.store, accountId: a.accountId, ...c });
+    const live = apps.filter((a) => { const p = a.channels.appstore || a.channels.production; return p && (p.category === 'live' || p.liveVersion); }).length;
+    const stuck = pend.filter((r) => r.stuck).length;
+    const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', hour12: false }).format(new Date()));
+    const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    const sentence = pend.length || att.length
+      ? `<b>${inRev.length}</b> in review, <b>${waiting.length}</b> waiting${stuck ? ` (<b style="color:var(--c-rejected)">${stuck} past the ${M.stuckHours}h SLA</b>)` : ''}, and <b>${att.length}</b> need${att.length === 1 ? 's' : ''} your attention.`
+      : 'Nothing is waiting on Apple or Google right now. All clear ✨';
+    const kpi = (k, ic, n, l, f, view) => `<button class="kpi" style="--k:var(--c-${k})" data-go="${view}"><div class="ic">${icon(ic, '')}</div><div class="n" data-count="${n}">${n}</div><div class="l">${l}</div><div class="f">${f}</div></button>`;
+    const col = (title, k, rows, none, view) => `<div class="col"><div class="col-h" style="--k:var(--c-${k})"><span class="dot"></span>${title}<span class="ct">${rows.length}</span></div>
+      ${rows.length ? rows.slice(0, 5).map(tcard).join('') + (rows.length > 5 ? `<button class="more" data-go="${view}">+${rows.length - 5} more</button>` : '') : `<div class="none">${none}</div>`}</div>`;
+    const act = M.activity.filter(passes).slice(0, 8);
+    const accs = M.accounts.filter((a) => (!S.store || a.store === S.store) && (!S.account || a.id === S.account));
+    const rej = att.filter((r) => r.category === 'rejected').length;
+    return `
+      <div class="hello"><div><h2>${greet} 👋</h2><p>${sentence}</p></div></div>
+      <div class="kpis">
+        ${kpi('in_review', 'hourglass', pend.length, 'Under review', `${inRev.length} in review · ${waiting.length} waiting`, 'review')}
+        ${kpi('rejected', 'alert', att.length, 'Needs attention', att.length ? `${rej} rejected · ${att.length - rej} action / removed` : 'No rejections 🎉', 'attention')}
+        ${kpi('approved', 'check', approved.length, 'Approved, not released', approved.length ? 'Ready for you to release' : 'Nothing waiting on you', 'apps')}
+        ${kpi('live', 'rocket', live, 'Live in store', `of ${apps.length} apps · ${accs.length} accounts`, 'apps')}
+      </div>
+      <div class="card stats">
+        <div class="stat"><div class="ringwrap"><div class="ring" style="--p:${Math.round((st.approvalRate30 ?? 0) * 100)}"><span>${st.approvalRate30 == null ? '—' : Math.round(st.approvalRate30 * 100) + '%'}</span></div>
+          <div><div class="l">Approval rate · 30 days</div><div class="v" style="font-size:14.5px">${st.approved30 ?? 0} approved · ${st.rejected30 ?? 0} rejected</div></div></div></div>
+        <div class="stat"><div class="l">${storeIcon('apple')} App Store review</div><div class="v">${md.appstore ? dur(md.appstore) : '—'}</div><div class="s">median of ${st.samples?.appstore || 0}</div></div>
+        <div class="stat"><div class="l">${storeIcon('apple')} TestFlight review</div><div class="v">${md.testflight ? dur(md.testflight) : '—'}</div><div class="s">median of ${st.samples?.testflight || 0}</div></div>
+        <div class="stat"><div class="l">${storeIcon('google')} Google Play review</div><div class="v">${md.play ? dur(md.play) : '—'}</div><div class="s">median of ${st.samples?.play || 0}</div></div>
+        <div class="stat"><div class="l">${icon('activity', 'xs')} Submitted · 7 days</div><div class="v">${st.submitted7 ?? 0}</div><div class="s">${stuck ? `<span style="color:var(--c-rejected)">${stuck} over SLA</span>` : `SLA ${M.stuckHours}h · on track`}</div></div>
+      </div>
+        <div class="card" style="margin-bottom:18px">
+          <div class="card-h"><h3>Review pipeline</h3><span class="sub">every submission, every account</span><div class="grow"></div><button class="link" data-go="review">Open list ${icon('chev', 'xs')}</button></div>
+          <div class="board">
+            ${col('Waiting', 'submitted', waiting, 'Nothing queued', 'review')}
+            ${col('In review', 'in_review', inRev, 'Nothing in review', 'review')}
+            ${col('Approved · ready', 'approved', approved, 'Nothing to release', 'apps')}
+            ${col('Rejected / action', 'rejected', att, 'All clear 🎉', 'attention')}
+          </div>
+        </div>
+      <div class="two">
+          <div class="card"><div class="card-h"><h3>Latest activity</h3><div class="grow"></div><button class="link" data-go="activity">See all ${icon('chev', 'xs')}</button></div>
+            ${act.length ? `<ul class="feed">${act.map((e) => feedItem(e)).join('')}</ul>` : empty('🕊️', 'No changes yet', 'Status changes will appear here.')}</div>
+          <div class="card"><div class="card-h"><h3>Accounts</h3><div class="grow"></div><button class="link" data-go="accounts">Manage ${icon('chev', 'xs')}</button></div>
+            <div class="acclist">${accs.map((a) => `<div class="accrow" data-filter-acc="${esc(a.id)}"><span class="ico sm plain">${storeIcon(a.store, 'sm')}</span>
+              <div style="min-width:0"><div class="nm">${esc(a.name)}</div><div class="mt">${a.appCount} apps · ${a.error ? '<span style="color:var(--c-rejected)">failing</span>' : 'synced ' + ago(a.lastPollAt)}</div></div>
+              <span class="st">${a.error ? '<span class="dotbad"></span>' : a.warning ? '<span class="dotwarn"></span>' : '<span class="dotok"></span>'}</span></div>`).join('')}</div></div>
+      </div>`;
+  }
+
+  function vReview() {
+    const rows = M.pending.filter(passes);
+    if (!rows.length) return `<div class="card">${empty('🎉', 'Nothing under review', 'When you submit a build or release, it appears here with a live timer.')}</div>`;
+    return `<div class="card list">
+      <div class="lrow head"><div>App</div><div>Store · track</div><div>Status</div><div>Time in review · SLA ${M.stuckHours}h</div><div></div></div>
+      ${rows.map((r) => { const s = sla(r.elapsedMs); return `<div class="lrow" data-app="${esc(r.appKey)}">
+        <div class="appc">${appIcon(r.appName, r.iconUrl)}<div style="min-width:0"><div class="nm">${esc(r.appName)} <span class="small" style="font-weight:500">${esc(r.version || '')}</span></div><div class="sb">${esc(accLabel(r.accountId))}</div></div></div>
+        <div>${chChip(r.store, r.channelLabel)}${r.liveVersion ? `<div class="tiny" style="margin-top:4px">live: ${esc(r.liveVersion)}</div>` : ''}</div>
+        <div>${badge(r)}<div class="tiny" style="margin-top:4px">since ${ago(r.since)}</div></div>
+        <div class="timer ${s.cls}"><div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span class="v">${dur(r.elapsedMs)}${r.stuck ? ' ⏰' : ''}</span><span class="tiny">submitted ${fmt(r.submittedAt)}</span></div><div class="sla" style="--k:${s.color}"><i style="width:${s.pct}%"></i></div></div>
+        <div class="acts">${r.url ? `<a class="ibtn sq" href="${esc(r.url)}" target="_blank" rel="noopener" title="Open console">${icon('ext')}</a>` : ''}</div>
+      </div>`; }).join('')}</div>`;
+  }
+
+  function vAttention() {
+    const rows = M.attention.filter(passes);
+    if (!rows.length) return `<div class="card">${empty('✅', 'No rejections or policy actions', 'Everything submitted is in review, approved or live.')}</div>`;
+    return `<div class="alerts">${rows.map((r, i) => `<div class="card alert" style="--c:var(--c-${r.category})">
+      <div style="display:flex;gap:12px;align-items:center">${appIcon(r.appName, r.iconUrl)}<div style="min-width:0;flex:1"><div style="font-weight:650">${esc(r.appName)} <span class="small">${esc(r.version || '')}</span></div>
+        <div class="small" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:2px">${chChip(r.store, r.channelLabel)} ${esc(accLabel(r.accountId))}</div></div>${badge(r)}</div>
+      <div class="reason ${r.reason ? '' : 'muted'}">${esc(r.reason || (r.store === 'apple' ? "Apple doesn't share the reviewer's message through its API. Open App Store Connect → App Review to read it and reply." : r.status === 'HALTED' ? 'The staged rollout was halted in Play Console. Resume or replace the release there.' : 'No reason text yet. It arrives with the Play Console email.'))}</div>
+      <div class="bar">
+        ${r.url ? `<a class="ibtn primary" href="${esc(r.url)}" target="_blank" rel="noopener">${icon('ext')}${r.store === 'apple' ? 'App Store Connect' : 'Play Console'}</a>` : ''}
+        ${r.emailUrl ? `<a class="ibtn" href="${esc(r.emailUrl)}" target="_blank" rel="noopener">${icon('mail')}Email</a>` : ''}
+        ${r.reason ? `<button class="ibtn" data-copy="${i}">${icon('copy')}Copy</button>` : ''}
+        <button class="ibtn" data-app="${esc(r.appKey)}">${icon('clock')}History</button>
+        <span class="tiny" style="margin-left:auto">${ago(r.since)}</span>
+      </div></div>`).join('')}</div>`;
+  }
+
+  const COLS = { apple: ['appstore', 'testflight'], google: ['production', 'beta', 'alpha', 'internal'] };
+  const COLN = { appstore: 'App Store', testflight: 'TestFlight', production: 'Production', beta: 'Open testing', alpha: 'Closed testing', internal: 'Internal' };
+
+  function vApps() {
+    const apps = M.apps.filter(passes);
+    const groups = M.accounts.filter((a) => (!S.store || a.store === S.store) && (!S.account || a.id === S.account)).map((acc) => ({ acc, apps: apps.filter((a) => a.accountId === acc.id) }));
+    const head = `<div class="chips"><span class="small">${apps.length} apps across ${groups.length} account${groups.length === 1 ? '' : 's'}</span><div style="flex:1"></div>
+      <div class="seg"><button data-l="grid" class="${S.layout === 'grid' ? 'on' : ''}">${icon('apps', 'xs')}Cards</button><button data-l="table" class="${S.layout === 'table' ? 'on' : ''}">${icon('list', 'xs')}Table</button></div></div>`;
+    if (!groups.length) return head + `<div class="card">${empty('📭', 'No accounts', 'Add accounts in config/apps.json.')}</div>`;
+    return head + `<div class="groups">${groups.map(({ acc, apps: list }) => {
+      const cols = [...COLS[acc.store], ...new Set(list.flatMap((a) => Object.keys(a.channels)).filter((c) => !COLS[acc.store].includes(c)))];
+      const body = !list.length
+        ? `<div class="card">${empty(acc.error ? '⚠️' : '📭', acc.error ? 'Account not reachable' : 'No apps yet', esc(acc.error || 'Apps appear after the next discovery run.'))}</div>`
+        : S.layout === 'table'
+        ? `<div class="card scrollx"><table class="t"><thead><tr><th>App</th>${cols.map((c) => `<th>${esc(COLN[c] || c)}</th>`).join('')}</tr></thead><tbody>
+          ${list.map((a) => `<tr data-app="${esc(a.key)}"><td><div class="appc">${appIcon(a.name, a.iconUrl, 'sm')}<div style="min-width:0"><div class="nm">${esc(a.name)}</div><div class="sb">${esc(a.bundleOrPackage)}</div></div></div></td>
+            ${cols.map((c) => { const ch = a.channels[c]; return `<td>${ch ? `${badge(ch, 'sm')}<div class="cellv">${esc(ch.version)} · ${ago(ch.since)}${ch.elapsedMs != null ? ` · <b style="color:${sla(ch.elapsedMs).color}">${dur(ch.elapsedMs)}</b>` : ''}</div>` : '<span class="tiny">—</span>'}</td>`; }).join('')}</tr>`).join('')}
+          </tbody></table></div>`
+        : `<div class="grid">${list.map((a) => `<button class="card acard" data-app="${esc(a.key)}"><span class="stripe" style="--k:var(--c-${a.topCategory})"></span>
+            <div class="appc">${appIcon(a.name, a.iconUrl)}<div style="min-width:0"><div class="nm">${esc(a.name)}</div><div class="sb">${esc(a.bundleOrPackage)}</div></div></div>
+            <div class="chs">${cols.filter((c) => a.channels[c] || COLS[acc.store].includes(c)).map((c) => { const ch = a.channels[c]; return ch
+              ? `<div class="chl"><span class="lb">${esc(COLN[c] || c)}</span>${badge(ch, 'sm')}<span class="vv" title="${esc(ch.version)}">${ch.elapsedMs != null ? `<b style="color:${sla(ch.elapsedMs).color}">${dur(ch.elapsedMs)}</b>` : esc(ch.version)}</span></div>`
+              : `<div class="chl nosub"><span class="lb">${esc(COLN[c] || c)}</span><span class="tiny">No submission</span></div>`; }).join('')}</div>
+          </button>`).join('')}</div>`;
+      return `<section><div class="gh"><span class="sic">${storeIcon(acc.store, 'sm')}</span><div><b>${esc(acc.name)}</b><div class="tiny">${acc.store === 'apple' ? 'App Store Connect' : 'Google Play Console'} · ${list.length} apps · synced ${ago(acc.lastPollAt)}</div></div><div class="grow"></div>${acc.error ? '<span class="badge sm" style="--c:var(--c-rejected);--b:var(--b-rejected)">Failing</span>' : ''}</div>${body}</section>`;
+    }).join('')}</div>`;
+  }
+
+  function vAccounts() {
+    const accs = M.accounts.filter((a) => !S.store || a.store === S.store);
+    const hint = (a) => {
+      const e = a.error || '';
+      if (/401|unauthor|expired|NOT_AUTHORIZED/i.test(e)) return a.store === 'apple' ? 'The API key was revoked or is wrong. Create a new Team Key in App Store Connect → Users and Access → Integrations and update keyId / issuerId / .p8.' : 'The service-account key is invalid. Create a new JSON key in Google Cloud and replace the file in keys/.';
+      if (/403|permission/i.test(e)) return a.store === 'apple' ? 'The key role is too low. Use App Manager, or Admin if you register webhooks.' : 'Invite the service-account email in this Play account (Users and permissions) with “View app information”.';
+      if (/ENOENT|no such file/i.test(e)) return 'The key file path in config/apps.json does not exist on the server.';
+      return 'Run `npm run check` on the server for full details.';
+    };
+    const healthBadge = (bad, warn, offTxt) => bad ? '<span class="badge sm" style="--c:var(--c-rejected);--b:var(--b-rejected)">Failing</span>'
+      : warn ? `<span class="badge sm" style="--c:var(--c-action);--b:var(--b-action)">${offTxt || 'Warning'}</span>` : '<span class="badge sm" style="--c:var(--c-live);--b:var(--b-live)">Healthy</span>';
+    const gm = M.gmail;
+    return `<div class="accgrid">${accs.map((a) => {
+      const n = M.apps.filter((x) => x.accountId === a.id).length;
+      const pend = M.pending.filter((r) => r.accountId === a.id).length;
+      const att = M.attention.filter((r) => r.accountId === a.id).length;
+      return `<div class="card acc"><div class="top"><span class="sic">${storeIcon(a.store, '')}</span><div style="min-width:0;flex:1"><div class="nm">${esc(a.name)}</div><div class="small">${a.store === 'apple' ? 'App Store Connect team' : 'Play developer account'} · <code>${esc(a.id)}</code></div></div>${healthBadge(a.error, a.warning)}</div>
+        <div class="kv"><div><b>${n}</b><span>apps</span></div><div><b style="color:${pend ? 'var(--c-in_review)' : 'inherit'}">${pend}</b><span>in review</span></div><div><b style="color:${att ? 'var(--c-rejected)' : 'inherit'}">${att}</b><span>attention</span></div></div>
+        ${a.error ? `<div class="err"><b>${esc(a.error)}</b><div class="hint">${esc(hint(a))}</div></div>` : ''}
+        ${a.warning ? `<div class="err warn">${esc(a.warning)}<div class="hint">Falling back to the apps listed in apps.json. Enable the Play Developer Reporting API for full auto-discovery.</div></div>` : ''}
+        <div class="ok">${icon('clock', 'xs')} Synced ${ago(a.lastPollAt)} · apps discovered ${ago(a.lastDiscoveryAt)}</div>
+        <button class="ibtn" data-filter-acc="${esc(a.id)}">${icon('apps')}View ${n} apps</button>
+      </div>`; }).join('')}
+      ${M.accounts.some((a) => a.store === 'google') && S.store !== 'apple' ? `<div class="card acc"><div class="top"><span class="sic">${icon('mail', '')}</span><div style="flex:1;min-width:0"><div class="nm">Play email reader</div><div class="small">Shared Gmail inbox → Play approvals, rejections and reasons</div></div>${healthBadge(gm?.error, !gm?.enabled, 'Not set up')}</div>
+        ${!gm?.enabled ? '<div class="err warn">Without it, Play releases stay at “Sent to Google”.<div class="hint">Set GMAIL_CLIENT_ID / SECRET and run <code>npm run gmail:auth</code>, or use Workspace domain-wide delegation.</div></div>' : gm.error ? `<div class="err">${esc(gm.error)}</div>` : ''}
+        <div class="ok">${icon('clock', 'xs')} Inbox read ${ago(gm?.lastPollAt)}</div></div>` : ''}
+    </div>`;
+  }
+
+  function vActivity() {
+    const cats = [['', 'All'], ['submitted', 'Submitted'], ['in_review', 'In review'], ['approved', 'Approved'], ['live', 'Live'], ['rejected', 'Rejected']];
+    const rows = M.activity.filter(passes).filter((e) => !S.actCat || e.category === S.actCat || (S.actCat === 'rejected' && ['action', 'removed'].includes(e.category)));
+    let out = `<div class="chips">${cats.map(([k, l]) => `<button class="fchip ${S.actCat === k ? 'on' : ''}" data-act="${k}" style="--c:var(--c-${k || 'none'})">${k ? '<span class="d"></span>' : ''}${l}</button>`).join('')}<div style="flex:1"></div><span class="tiny">last 30 days</span></div>`;
+    if (!rows.length) return out + `<div class="card">${empty('🕊️', 'No activity for this filter')}</div>`;
+    let last = '';
+    out += '<div class="card" style="padding:10px 8px">';
+    for (const e of rows) {
+      const d = dayLabel(e.at);
+      if (d !== last) { out += `${last ? '</ul>' : ''}<div class="day">${d}</div><ul class="feed" style="padding-top:0">`; last = d; }
+      out += feedItem(e, true);
+    }
+    return out + '</ul></div>';
+  }
+
+
+  // ── admin (Supabase mode) ──
+  const A = { gmail: null, gmailTest: null, gmailQuery: false, gmailEditClient: false, setup: null, apps: null, audit: null, auditLevel: '', manageQ: '', manageAcc: '', editing: null, chatMsg: null, busy: {} };
+  async function aApi(path, opts = {}) {
+    const res = await fetch('/api/admin' + path, { credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, ...opts, body: opts.body ? JSON.stringify(opts.body) : undefined });
+    if (res.status === 401) { location.reload(); throw new Error('unauthorized'); }
+    let json = null; try { json = await res.json(); } catch {}
+    if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+    return json;
+  }
+  let adminInflight = null;
+  async function adminLoad(view, force = false) {
+    const key = view === 'setup' ? 'setup' : view === 'manage' ? 'apps' : 'audit';
+    if (!force && A[key] && adminInflight !== key && Date.now() - (A[key + 'At'] || 0) < 15000) return;
+    if (adminInflight === key) return;
+    adminInflight = key;
+    try {
+      if (key === 'setup') { [A.setup, A.gmail] = await Promise.all([aApi('/setup'), aApi('/gmail')]); }
+      else if (key === 'apps') { A.apps = await aApi('/apps'); if (!A.setup) A.setup = await aApi('/setup'); }
+      else A.audit = await aApi(`/audit?limit=300${A.auditLevel ? '&level=' + A.auditLevel : ''}`);
+      A[key + 'At'] = Date.now();
+    } catch (e) { toast('⚠️ ' + esc(e.message)); }
+    adminInflight = null;
+    if (S.view === view) $('#view').innerHTML = { setup: vSetup, manage: vManage, audit: vAudit }[view]();
+  }
+  const skel = (n = 3, h = 120) => `<div class="stack">${`<div class="sk" style="height:${h}px"></div>`.repeat(n)}</div>`;
+  const sw = (on, attrs) => `<button class="sw ${on ? 'on' : ''}" ${attrs} aria-pressed="${on}"></button>`;
+
+  function vSetup() {
+    const d = A.setup;
+    if (!d) return skel(3, 160);
+    const p = d.prefs || {};
+    const acc = (a) => `<div class="card acc">
+      <div class="top"><span class="sic">${storeIcon(a.store, '')}</span><div style="min-width:0;flex:1"><div class="nm">${esc(a.name)}</div>
+        <div class="small ell" title="${esc(a.store === 'apple' ? `Key ID ${a.keyId || ''}` : a.clientEmail || '')}">${a.store === 'apple' ? `App Store Connect · key <code>${esc(a.keyId || '')}</code>` : `Google Play · <code>${esc((a.clientEmail || '').replace(/\.iam\.gserviceaccount\.com$/, ''))}</code>`}</div></div>
+        ${a.error ? '<span class="badge sm" style="--c:var(--c-rejected);--b:var(--b-rejected)">Failing</span>' : a.polling ? '<span class="badge sm" style="--c:var(--c-in_review);--b:var(--b-in_review)">Syncing</span>' : '<span class="badge sm" style="--c:var(--c-live);--b:var(--b-live)">Healthy</span>'}</div>
+      <div class="kv"><div><b>${a.appCount}</b><span>apps found</span></div><div><b>${a.trackedCount}</b><span>watched</span></div><div><b style="font-size:13px;line-height:2">${ago(a.lastPollAt)}</b><span>last sync</span></div></div>
+      ${a.error ? `<div class="err"><b>${esc(a.error)}</b></div>` : a.warning ? `<div class="err warn">${esc(a.warning)}</div>` : ''}
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="ibtn sm" data-a-sync="${esc(a.id)}">${icon('refresh', 'xs')}Sync now</button>
+        <button class="ibtn sm" data-a-rename="${esc(a.id)}">${icon('pencil', 'xs')}Rename</button>
+        <button class="ibtn sm" data-filter-acc="${esc(a.id)}">${icon('apps', 'xs')}Apps</button>
+        <div style="flex:1"></div>
+        <button class="ibtn sm sq" style="width:30px;color:var(--c-rejected)" data-a-remove="${esc(a.id)}" title="Remove account">${icon('trash', 'xs')}</button>
+      </div></div>`;
+    return `
+      <div class="sect-h"><div><h3>Developer accounts</h3><p>Each App Store Connect team and Google Play account the bot reads from.</p></div><a class="ibtn primary" href="/onboarding#add">${icon('plus')}Add account</a></div>
+      <div class="accgrid eq" style="margin-bottom:28px">${d.accounts.map(acc).join('') || `<div class="card">${empty('🔌', 'No accounts yet', 'Add your first App Store Connect or Google Play account.')}</div>`}</div>
+
+      <div class="sect-h"><div><h3>Google Chat · app_review_bot</h3><p>Every store update is posted here in real time — no daily report.</p></div></div>
+      ${chatCard(d)}
+
+      <div class="sect-h"><div><h3>Preferences</h3><p>Saved instantly.</p></div></div>
+      <div class="card pad-l" style="margin-bottom:28px">
+        <div class="frow"><div class="flabel"><b>Stuck in review after</b><span>Flags submissions and lists them in the daily summary.</span></div>
+          <select class="sel" data-a-pref="stuckHours">${[24, 36, 48, 72, 96].map((h) => `<option value="${h}" ${Number(p.stuckHours || 48) === h ? 'selected' : ''}>${h} hours</option>`).join('')}</select></div>
+        <div class="frow"><div class="flabel"><b>Check App Store Connect every</b><span>Each change is posted to Chat the moment it's detected.</span></div>
+          <select class="sel" data-a-pref="applePollMinutes">${[1, 2, 5, 10].map((m) => `<option value="${m}" ${Number(p.applePollMinutes || 1) === m ? 'selected' : ''}>${m} min</option>`).join('')}</select></div>
+        <div class="frow"><div class="flabel"><b>Check Google Play releases every</b><span>Detects “sent for review”, rollouts and halts.</span></div>
+          <select class="sel" data-a-pref="playPollMinutes">${[1, 2, 5, 10].map((m) => `<option value="${m}" ${Number(p.playPollMinutes || 2) === m ? 'selected' : ''}>${m} min</option>`).join('')}</select></div>
+        <div class="frow"><div class="flabel"><b>Check Play Console emails every</b><span>Approvals, “live”, rejections with reason, policy notices — and any other Play message.</span></div>
+          <select class="sel" data-a-pref="gmailPollMinutes">${[1, 2, 5].map((m) => `<option value="${m}" ${Number(p.gmailPollMinutes || 1) === m ? 'selected' : ''}>${m} min</option>`).join('')}</select></div>
+        <div class="frow"><div class="flabel"><b>Quiet first sync</b><span>Record current statuses silently when an account is added.</span></div>${sw(p.silentFirstRun !== false, 'data-a-toggle="silentFirstRun"')}</div>
+      </div>
+
+      <div class="sect-h"><div><h3>Play email reader (Gmail)</h3><p>Google Play has no review-status API. Approvals, “live” and rejection reasons arrive as Play Console emails, so the bot reads one shared mailbox (read-only).</p></div>
+        ${A.gmail ? (A.gmail.connected ? (d.gmail.error ? '<span class="badge" style="--c:var(--c-rejected);--b:var(--b-rejected)">Failing</span>' : '<span class="badge" style="--c:var(--c-live);--b:var(--b-live)">Connected</span>') : '<span class="badge" style="--c:var(--c-action);--b:var(--b-action)">Not connected</span>') : ''}</div>
+      ${gmailCard()}`;
+  }
+
+  function gmailCard() {
+    const g = A.gmail;
+    if (!g) return '<div class="sk" style="height:220px"></div>';
+    const stepState = (n) => (n === 1 ? g.hasClient : n === 2 ? g.connected : false);
+    const num = (n) => `<span class="gnum ${stepState(n) ? 'done' : ''}">${stepState(n) ? icon('check', 'xs') : n}</span>`;
+    return `<div class="card pad-l gmail">
+      <div class="gstep">${num(1)}<div class="gbody">
+        <div class="gtitle">Create a Google OAuth client <button class="infob" data-info="g1" aria-label="How">${icon('help', 'xs')}</button></div>
+        <div class="infobox" id="info-g1"><ol>
+          <li>Open <a href="https://console.cloud.google.com/apis/library/gmail.googleapis.com" target="_blank" rel="noopener">Google Cloud → Gmail API</a> (same project as the Play service account is fine) and click <b>Enable</b>.</li>
+          <li>Go to <a href="https://console.cloud.google.com/auth/overview" target="_blank" rel="noopener">Google Auth Platform</a> → <b>Get started</b>. App name <code>app_review_bot</code>, audience <b>Internal</b> (WebMob Workspace — tokens never expire). Add scope <code>gmail.readonly</code>.</li>
+          <li><a href="https://console.cloud.google.com/auth/clients" target="_blank" rel="noopener">Clients</a> → <b>Create client</b> → type <b>Web application</b>, name <code>app_review_bot</code>.</li>
+          <li>Under <b>Authorized redirect URIs</b> add exactly the URL below, then <b>Create</b>.</li>
+          <li>Copy the <b>Client ID</b> and <b>Client secret</b> into the fields here and click Save.</li></ol></div>
+        <div class="frow" style="border:0;padding:8px 0 4px;gap:8px"><span class="small" style="flex:none">Redirect URI</span><code class="uri">${esc(g.redirectUri)}</code><button class="ibtn sm" data-copytext="${esc(g.redirectUri)}">${icon('copy', 'xs')}Copy</button></div>
+        ${g.hasClient && !A.gmailEditClient ? `<div class="frow" style="border:0;padding:6px 0;gap:8px"><span class="small">Client</span><code>${esc(g.clientIdMasked)}</code><button class="ibtn sm" data-g-editclient>Change</button></div>`
+          : `<div class="gform"><input class="inp mono" id="g-cid" placeholder="Client ID — 1234-abc.apps.googleusercontent.com" autocomplete="off"><input class="inp mono" id="g-csec" type="password" placeholder="Client secret — GOCSPX-…" autocomplete="off"><button class="ibtn primary" data-g-saveclient>${icon('check')}Save</button></div>`}
+      </div></div>
+
+      <div class="gstep">${num(2)}<div class="gbody">
+        <div class="gtitle">Connect the shared mailbox <button class="infob" data-info="g2" aria-label="How">${icon('help', 'xs')}</button></div>
+        <div class="infobox" id="info-g2"><ol>
+          <li>Use one shared mailbox for all Play accounts, e.g. <code>store-alerts@webmobtech.com</code> (a Google Group with a mailbox, or a normal Workspace user).</li>
+          <li>In <b>each</b> Play Console → Users and permissions → invite that email (View app information is enough).</li>
+          <li>Sign in as that mailbox → Play Console → <b>Settings → Notifications</b> → turn on email for app updates, publishing status and policy.</li>
+          <li>Or keep your current inbox and add a Gmail filter that forwards mail from Google Play to the shared mailbox.</li>
+          <li>Click <b>Sign in with Google</b> below and choose the shared mailbox. The bot only asks for read-only access.</li></ol></div>
+        ${g.connected
+          ? `<div class="frow" style="border:0;padding:6px 0;gap:10px"><span class="gavatar">${esc((g.email || '?')[0].toUpperCase())}</span><div class="flabel"><b>${esc(g.email || 'Connected')}</b><span>Connected ${g.connectedAt ? ago(Date.parse(g.connectedAt)) : ''} · last read ${ago(g.lastPollAt)}${g.error ? ` · <span style="color:var(--c-rejected)">${esc(g.error)}</span>` : ''}</span></div>
+              <button class="ibtn sm" data-g-connect>Switch account</button><button class="ibtn sm" style="color:var(--c-rejected)" data-g-disconnect>Disconnect</button></div>`
+          : `<div style="padding:6px 0 4px"><button class="gbtn" data-g-connect ${g.hasClient ? '' : 'disabled'}><span class="gg">G</span>Sign in with Google</button>${g.hasClient ? '' : '<span class="tiny" style="margin-left:10px">Save the OAuth client first</span>'}</div>`}
+      </div></div>
+
+      <div class="gstep" style="border-bottom:0">${num(3)}<div class="gbody">
+        <div class="gtitle">Check what the bot reads</div>
+        <div class="small" style="margin-bottom:8px">Shows the latest Play emails matching the search, and which app + status the bot understood from each.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="ibtn primary" data-g-test ${g.connected ? '' : 'disabled'}>${icon('search', 'xs')}Check inbox now</button>
+          <button class="ibtn" data-g-togglequery>${icon('sliders', 'xs')}Search filter</button></div>
+        ${A.gmailQuery ? `<div class="gform" style="margin-top:10px"><input class="inp mono" id="g-query" value="${esc(g.query)}"><button class="ibtn" data-g-savequery>Save</button></div><div class="tiny" style="padding:6px 0 0">Gmail search syntax. Tighten it to the exact sender once the first Play email arrives.</div>` : ''}
+        ${A.gmailTest ? (A.gmailTest.error ? `<div class="note bad" style="margin-top:10px">${esc(A.gmailTest.error)}</div>`
+          : A.gmailTest.loading ? '<div class="sk" style="height:120px;margin-top:10px"></div>'
+          : `<div class="gtest">${A.gmailTest.emails.length ? A.gmailTest.emails.map((m) => `<div class="gmail-row"><div style="min-width:0;flex:1"><div class="t1">${esc(m.subject || '(no subject)')}</div><div class="tiny">${esc(m.from)} · ${m.at ? ago(m.at) : ''}</div></div>
+              ${m.status ? `<span class="badge sm" style="--c:var(--c-${{ REJECTED: 'rejected', REMOVED: 'removed', POLICY_ACTION: 'action', LIVE: 'live', APPROVED: 'approved', READY_TO_PUBLISH: 'approved', IN_REVIEW: 'in_review' }[m.status] || 'none'});--b:var(--b-${{ REJECTED: 'rejected', REMOVED: 'removed', POLICY_ACTION: 'action', LIVE: 'live', APPROVED: 'approved', READY_TO_PUBLISH: 'approved', IN_REVIEW: 'in_review' }[m.status] || 'none'})">${esc(m.status.replace(/_/g, ' ').toLowerCase())}</span>` : '<span class="badge sm" style="--c:var(--c-none);--b:var(--b-none)">ignored</span>'}
+              <span class="tiny" style="width:150px;text-align:right">${m.appName ? esc(m.appName) : m.packageName ? esc(m.packageName) + ' (not tracked)' : 'no app found'}</span></div>`).join('')
+              : '<div class="small" style="padding:12px 0">No Play emails match the search yet. That\'s normal until Google sends the first one.</div>'}</div>`) : ''}
+      </div></div>
+    </div>`;
+  }
+
+  function chatCard(d) {
+    const c = d.chat;
+    const gAccs = d.accounts.filter((a) => a.store === 'google');
+    const saId = A.chatSa || gAccs[0]?.id || '';
+    const status = c.configured
+      ? (c.mode === 'user' ? `Posting to <b>${esc(c.spaceName || c.masked)}</b> as <b>${esc(c.userEmail || 'you')}</b> (labelled 🤖 app_review_bot)` : c.mode === 'app' ? `Posting as the Chat app to <b>${esc(c.spaceName || c.masked)}</b>${c.appEmail ? ` <span class="tiny">via ${esc(c.appEmail.replace(/\.iam\.gserviceaccount\.com$/, ''))}</span>` : ''}` : `Webhook <code>${esc(c.masked)}</code>`)
+      : 'Not connected — nothing is posted to Chat yet.';
+    const userMode = `
+      <div class="gtitle" style="margin-top:4px">Post as me <button class="infob" data-info="chatuser" aria-label="How">${icon('help', 'xs')}</button><span class="tiny" style="font-weight:400">— works when your organisation blocks Chat apps and webhooks</span></div>
+      <div class="infobox ${c.mode === 'user' ? '' : 'on'}" id="info-chatuser"><ol>
+        <li>Messages are posted into the space <b>from your own Google account</b>, starting with “🤖 app_review_bot”. Nothing needs to be installed in the space, so no admin approval is needed.</li>
+        <li>Uses the same Google OAuth client as the Play email reader. In <a href="https://console.cloud.google.com/apis/library/chat.googleapis.com?project=playstore-review-511513" target="_blank" rel="noopener">Google Cloud</a> the <b>Google Chat API</b> must be enabled, and its <b>Configuration</b> page saved once (you already did this).</li>
+        <li>Click <b>Sign in with Google</b> with the account that is a member of the space (e.g. <b>App Store Reviews</b>) and allow “send messages”.</li>
+        <li>Paste the <b>space ID</b> (from the space's link) and click <b>Save &amp; send test</b> — or use <b>Find my spaces</b> to pick it from a list.</li>
+</ol></div>
+      ${c.userEmail
+        ? `<div class="frow" style="border:0;padding:6px 0;gap:10px"><span class="gavatar">${esc(c.userEmail[0].toUpperCase())}</span><div class="flabel"><b>${esc(c.userEmail)}</b><span>Signed in — messages will come from this account</span></div><button class="ibtn sm" data-c-usersignin>Switch account</button><button class="ibtn sm" data-c-userspaces title="Optional: list your spaces instead of typing the ID">${A.spacesLoading ? '<span class="spin" style="width:13px;height:13px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite;display:inline-block"></span>' : icon('search', 'xs')}Find my spaces</button></div>`
+        : `<div style="padding:6px 0 4px"><button class="gbtn" data-c-usersignin ${c.hasOauthClient ? '' : 'disabled'}><span class="gg">G</span>Sign in with Google</button>${c.hasOauthClient ? '' : '<span class="tiny" style="margin-left:10px">Save the Google OAuth client first (Play email reader, step 1)</span>'}</div>`}
+      ${c.userEmail ? `<div class="gtitle" style="margin:10px 0 4px">Space ID <button class="infob" data-info="spaceid" aria-label="Where">${icon('help', 'xs')}</button><span class="tiny" style="font-weight:400">— like n8n “Create message”</span></div>
+        <div class="infobox" id="info-spaceid"><ol>
+          <li>Open the space in your browser at <a href="https://chat.google.com" target="_blank" rel="noopener">chat.google.com</a> (or Chat inside Gmail).</li>
+          <li>Look at the address bar: it ends with <code>/room/AAAA…</code> or <code>#chat/space/AAAA…</code>.</li>
+          <li>Copy that <code>AAAA…</code> part (or paste the whole link — it's detected automatically).</li></ol></div>
+        <div class="frow" style="gap:8px;border:0;padding:4px 0 8px"><input class="inp mono" id="c-spaceid" placeholder="AAAAxxxxxxx, spaces/AAAAxxxxxxx or the space link" autocomplete="off" value="${esc(c.mode === 'user' && c.masked ? c.masked.replace(/^spaces\//, '') : '')}">
+          <button class="ibtn primary" data-c-spaceid>${icon('send')}Save &amp; send test</button></div>` : ''}
+      ${A.spacesErr ? `<div class="note bad"><b>${esc(A.spacesErr.error)}</b>${A.spacesErr.hint ? `<br>${esc(A.spacesErr.hint)}` : ''}</div>` : ''}
+      ${A.spaces && A.spacesMode === 'user' ? (A.spaces.length ? `<div class="spaces">${A.spaces.map((sp) => `<label class="space ${A.spaceSel === sp.name ? 'on' : ''}"><input type="radio" name="c-space" value="${esc(sp.name)}" ${A.spaceSel === sp.name ? 'checked' : ''}><span class="nm">${esc(sp.displayName)}</span><span class="tiny">${esc(sp.type === 'GROUP_CHAT' ? 'Group chat' : 'Space')} · ${esc(sp.name)}</span></label>`).join('')}</div>` : '<div class="note bad">No spaces found for this account.</div>') : ''}
+      <div style="display:flex;gap:8px;padding:6px 0 14px">${A.spaces && A.spacesMode === 'user' ? `<button class="ibtn primary" data-c-usersave ${A.spaceSel ? '' : 'disabled'}>${icon('send')}Use selected space</button>` : ''}${c.configured && c.mode === 'user' ? `<button class="ibtn" data-a-chattest>${icon('send')}Send test again</button>` : ''}</div>`;
+    if (c.locked) return `<div class="card pad-l" style="margin-bottom:28px">
+      <div class="frow"><div class="flabel"><b>Space</b><span><code>${esc(c.masked)}</code> · fixed in <code>.env</code> (GOOGLE_CHAT_SPACE) — not editable here</span></div><span class="badge" style="--c:var(--c-live);--b:var(--b-live)">🔒 Locked</span></div>
+      <div class="frow"><div class="flabel"><b>Posting as</b><span>${c.mode === 'app' ? `the Chat app <b>app_review_bot</b>${c.appEmail ? ` via ${esc(c.appEmail.replace(/\.iam\.gserviceaccount\.com$/, ''))}` : ''}` : c.userEmail ? `<b>${esc(c.userEmail)}</b> · every message starts with 🤖 app_review_bot` : '<span style="color:var(--c-rejected)">Nobody yet — sign in so messages can be sent</span>'}</span></div>
+        ${c.mode === 'app' ? '' : `<button class="ibtn sm" data-c-usersignin>${c.userEmail ? 'Switch account' : 'Sign in with Google'}</button>`}</div>
+      ${A.chatMsg ? `<div class="note ${A.chatMsg.ok ? 'ok' : 'bad'}">${esc(A.chatMsg.text)}</div>` : ''}
+      <div class="frow" style="gap:8px"><div class="flabel"><b>Real-time updates</b><span>Every store change is posted to this space within about a minute of it happening.</span></div><button class="ibtn primary" data-a-chattest>${icon('send')}Send test</button></div>
+    </div>`;
+    return `<div class="card pad-l" style="margin-bottom:28px">
+      <div class="frow"><div class="flabel"><b>Delivery</b><span>${status}</span></div>
+        ${c.configured ? '<span class="badge" style="--c:var(--c-live);--b:var(--b-live)">Connected</span>' : '<span class="badge" style="--c:var(--c-action);--b:var(--b-action)">Not set</span>'}</div>
+      ${A.chatMsg ? `<div class="note ${A.chatMsg.ok ? 'ok' : 'bad'}">${esc(A.chatMsg.text)}</div>` : ''}
+      ${userMode}
+    </div>`;
+  }
+
+  function vManage() {
+    if (!A.apps || !A.setup) return skel(1, 420);
+    const q = A.manageQ.toLowerCase();
+    const list = A.apps.filter((a) => (!A.manageAcc || a.accountId === A.manageAcc) && (!q || `${a.name} ${a.storeName} ${a.bundleOrPackage}`.toLowerCase().includes(q)));
+    const watched = A.apps.filter((a) => a.tracked).length, muted = A.apps.filter((a) => a.tracked && !a.notify).length;
+    const accName2 = (id) => A.setup.accounts.find((x) => x.id === id)?.name || id;
+    return `
+      <div class="chips"><span class="small"><b>${watched}</b> of ${A.apps.length} apps watched · <b>${muted}</b> muted · <b>${A.apps.filter((a) => a.hasWebhook).length}</b> with their own Chat space</span></div>
+      <div class="card">
+        <div class="mbar"><div class="msearch">${icon('search', 'xs')}<input class="inp" id="a-q" placeholder="Search apps or bundle IDs…" value="${esc(A.manageQ)}"></div>
+          <select class="sel" id="a-acc"><option value="">All accounts</option>${A.setup.accounts.map((x) => `<option value="${esc(x.id)}" ${A.manageAcc === x.id ? 'selected' : ''}>${esc(x.name)} · ${x.store === 'apple' ? 'Apple' : 'Play'}</option>`).join('')}</select>
+          <button class="ibtn" data-a-bulk="1">Watch all shown</button><button class="ibtn" data-a-bulk="0">Unwatch all shown</button></div>
+        ${list.length ? `<div class="mt"><div class="mrow head"><div>App</div><div>Current status</div><div>Watch</div><div>Notify</div><div>Chat space</div></div>
+        ${list.map((a) => `<div class="mrow ${a.tracked ? '' : 'off'}">
+          <div class="appc">${appIcon(a.name, a.iconUrl)}<div style="min-width:0">
+            ${A.editing === a.uuid ? `<div style="display:flex;gap:6px"><input class="inp sm" id="a-name-${esc(a.uuid)}" value="${esc(a.displayName || '')}" placeholder="${esc(a.storeName)}"><button class="ibtn sm" data-a-namesave="${esc(a.uuid)}">Save</button></div>`
+              : `<div class="nm" title="Click to rename" data-a-edit="${esc(a.uuid)}" style="cursor:text">${esc(a.name)} ${a.displayName ? `<span class="tiny">(${esc(a.storeName)})</span>` : ''}</div>`}
+            <div class="sb">${storeIcon(a.store)} ${esc(a.bundleOrPackage)} · ${esc(accName2(a.accountId))}</div></div></div>
+          <div class="mchans">${a.channels.length ? a.channels.slice(0, 2).map((c) => `<span class="badge sm" style="--c:var(--c-${c.category});--b:var(--b-${c.category})" title="${esc(c.channelLabel)} ${esc(c.version)}">${esc(c.channelLabel)}: ${esc(c.label)}</span>`).join('') : '<span class="tiny">No submissions</span>'}</div>
+          <div>${sw(a.tracked, `data-a-app="${esc(a.uuid)}" data-f="tracked" aria-label="Watch"`)}</div>
+          <div>${sw(a.tracked && a.notify, `data-a-app="${esc(a.uuid)}" data-f="notify" aria-label="Notify" ${a.tracked ? '' : 'disabled'}`)}</div>
+          <div>${a.hasWebhook ? `<button class="ibtn sm" data-a-hook="${esc(a.uuid)}" title="${esc(a.webhookMasked)}">Own space ✓</button>` : `<button class="ibtn sm" data-a-hook="${esc(a.uuid)}">Default</button>`}</div>
+        </div>`).join('')}</div>` : empty('🔎', 'No apps match', 'Try another search or account.')}
+      </div>`;
+  }
+
+  function vAudit() {
+    const levels = [['', 'All'], ['info', 'Info'], ['warn', 'Warnings'], ['error', 'Errors']];
+    const head = `<div class="chips">${levels.map(([k, l]) => `<button class="fchip ${A.auditLevel === k ? 'on' : ''}" data-a-level="${k}" style="--c:var(--c-${k === 'error' ? 'rejected' : k === 'warn' ? 'action' : k === 'info' ? 'in_review' : 'none'})">${k ? '<span class="d"></span>' : ''}${l}</button>`).join('')}<div style="flex:1"></div><button class="ibtn" data-a-reload>${icon('refresh')}Reload</button></div>`;
+    if (!A.audit) return head + skel(1, 380);
+    if (!A.audit.length) return head + `<div class="card">${empty('📜', 'Nothing logged yet', 'Account changes, Chat messages and sync errors appear here.')}</div>`;
+    const LABEL = {
+      'account.added': '🔌 Account connected', 'account.verify_failed': '⚠️ Account verification failed', 'account.removed': '🗑️ Account removed', 'account.updated': '✏️ Account updated',
+      'apps.discovered': '🔎 Apps fetched', 'app.updated': '⚙️ App settings changed', 'apps.bulk_updated': '⚙️ Apps updated in bulk',
+      'chat.webhook_set': '💬 Chat webhook saved', 'chat.app_set': '🤖 Chat app connected', 'chat.user_connected': '💬 Signed in to Google Chat', 'chat.user_connect_failed': '❌ Google Chat sign-in failed', 'chat.user_space_set': '💬 Chat space selected (post as me)', 'chat.test_sent': '👋 Test message sent', 'chat.test_failed': '❌ Test message failed', 'chat.notified': '📣 Posted to Chat', 'chat.store_message': '📩 Play message forwarded to Chat', 'chat.digest_sent': '📊 Daily summary posted',
+      'prefs.updated': '🎛️ Preferences changed', 'auth.login': '🔐 Signed in', 'auth.logout': '👋 Signed out', 'auth.login_failed': '🚫 Failed sign-in attempt', 'gmail.client_saved': '🔑 Gmail OAuth client saved', 'gmail.connected': '📬 Gmail connected', 'gmail.connect_failed': '❌ Gmail connection failed', 'gmail.disconnected': '📭 Gmail disconnected', 'gmail.query_updated': '🔎 Gmail search changed', 'onboarding.completed': '🎉 Onboarding completed', 'poll.manual': '↻ Manual sync', 'poll.error': '⛔ Sync error',
+    };
+    let last = '', out = head + '<div class="card" style="padding:8px">';
+    for (const e of A.audit) {
+      const ts = Date.parse(e.at), d = dayLabel(ts);
+      if (d !== last) { out += `${last ? '</ul>' : ''}<div class="day">${d}</div><ul class="alog">`; last = d; }
+      const fmtV = (v) => { const t = Array.isArray(v) ? v.map((x) => (x && x.label ? `${x.label}${x.detail ? ' — ' + x.detail : ''}` : typeof x === 'object' ? JSON.stringify(x) : x)).join('; ') : v && typeof v === 'object' ? JSON.stringify(v) : String(v); return t.length > 240 ? t.slice(0, 240) + '…' : t; };
+      const det = e.details && Object.keys(e.details).length ? Object.entries(e.details).map(([k, v]) => `<span><b>${esc(k)}</b> ${esc(fmtV(v))}</span>`).join('') : '';
+      out += `<li class="lv-${esc(e.level)}"><span class="tm">${new Intl.DateTimeFormat('en-IN', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(ts))}</span>
+        <div style="min-width:0;flex:1"><div class="t1">${esc(LABEL[e.action] || e.action)}${e.target ? ` <span class="tgt">${esc(e.target)}</span>` : ''}</div>${det ? `<div class="det">${det}</div>` : ''}</div>
+        <span class="actor">${esc(e.actor)}</span></li>`;
+    }
+    return out + '</ul></div>';
+  }
+
+  async function adminPatchApp(uuid, body) {
+    const a = A.apps.find((x) => x.uuid === uuid);
+    try {
+      const r = await aApi(`/apps/${uuid}`, { method: 'PATCH', body });
+      Object.assign(a, r);
+      $('#view').innerHTML = vManage();
+      return true;
+    } catch (e) { toast('⚠️ ' + esc(e.message)); return false; }
+  }
+
+  document.addEventListener('click', async (e) => {
+    const t = e.target;
+    if (!VIEWS[S.view]?.admin) return;
+    const q = (sel) => t.closest(sel);
+    let el;
+    if ((el = q('[data-a-sync]'))) { await aApi(`/accounts/${el.dataset.aSync}/poll`, { method: 'POST' }); toast('↻ Sync started'); setTimeout(() => adminLoad('setup', true), 4000); return; }
+    if ((el = q('[data-a-rename]'))) {
+      const a = A.setup.accounts.find((x) => x.id === el.dataset.aRename);
+      const name = prompt('Account name', a.name); if (!name || name === a.name) return;
+      await aApi(`/accounts/${a.id}`, { method: 'PATCH', body: { name } }); toast('✏️ Renamed'); return adminLoad('setup', true);
+    }
+    if ((el = q('[data-a-remove]'))) {
+      const a = A.setup.accounts.find((x) => x.id === el.dataset.aRemove);
+      if (!confirm(`Remove ${a.name}? Its apps, statuses and history will be deleted. This can't be undone.`)) return;
+      await aApi(`/accounts/${a.id}`, { method: 'DELETE' }); toast('🗑️ Account removed'); load(); return adminLoad('setup', true);
+    }
+    if (q('[data-c-spaceid]')) {
+      const raw = ($('#c-spaceid').value || '').trim();
+      const m = raw.match(/(?:spaces\/|\/room\/|chat\/space\/|^)([A-Za-z0-9_-]{8,})(?:[/?#]|$)/);
+      if (!m) return toast('⚠️ Paste the space ID (AAAA…) or the space link');
+      const space = 'spaces/' + m[1];
+      try {
+        await aApi('/settings/chat', { method: 'PUT', body: { mode: 'user', space, spaceName: space } });
+        await aApi('/settings/chat/test', { method: 'POST', body: {} });
+        A.chatMsg = { ok: true, text: `Connected — a test message was posted to ${space}.` };
+      } catch (err) { A.chatMsg = { ok: false, text: err.message }; }
+      return adminLoad('setup', true);
+    }
+    if (q('[data-c-usersignin]')) { location.href = '/api/admin/chat/user/connect'; return; }
+    if (q('[data-c-userspaces]')) {
+      A.spacesLoading = true; A.spacesErr = null; $('#view').innerHTML = vSetup();
+      try { const r = await fetch('/api/admin/settings/chat/spaces?mode=user', { credentials: 'same-origin' }); const j = await r.json(); if (!r.ok) A.spacesErr = j; else { A.spaces = j.spaces; A.spacesMode = 'user'; const pref = j.spaces.find((x) => /review/i.test(x.displayName)); A.spaceSel = (pref || (j.spaces.length === 1 ? j.spaces[0] : null))?.name || null; } }
+      catch (err) { A.spacesErr = { error: err.message }; }
+      A.spacesLoading = false; $('#view').innerHTML = vSetup(); return;
+    }
+    if (q('[data-c-usersave]')) {
+      const sp = A.spaces?.find((x) => x.name === A.spaceSel);
+      try {
+        await aApi('/settings/chat', { method: 'PUT', body: { mode: 'user', space: A.spaceSel, spaceName: sp?.displayName } });
+        await aApi('/settings/chat/test', { method: 'POST', body: {} });
+        A.chatMsg = { ok: true, text: `Connected — a test message was posted to ${sp?.displayName || A.spaceSel}.` };
+      } catch (err) { A.chatMsg = { ok: false, text: err.message }; }
+      return adminLoad('setup', true);
+    }
+    if ((el = q('[data-chatmode]'))) { A.chatMode = el.dataset.chatmode; A.chatMsg = null; A.spaces = null; A.spaceSel = null; A.spacesErr = null; $('#view').innerHTML = vSetup(); return; }
+    if (q('[data-c-spaces]')) {
+      A.chatSa = $('#c-sa').value; A.spacesLoading = true; A.spacesErr = null; $('#view').innerHTML = vSetup();
+      try { const r = await fetch(`/api/admin/settings/chat/spaces?accountId=${encodeURIComponent(A.chatSa)}`, { credentials: 'same-origin' }); const j = await r.json(); if (!r.ok) A.spacesErr = j; else { A.spaces = j.spaces; A.spacesMode = 'app'; if (j.spaces.length === 1) A.spaceSel = j.spaces[0].name; } }
+      catch (err) { A.spacesErr = { error: err.message }; }
+      A.spacesLoading = false; $('#view').innerHTML = vSetup(); return;
+    }
+    if ((el = q('.space'))) { e.preventDefault(); A.spaceSel = el.querySelector('input').value; $('#view').innerHTML = vSetup(); return; }
+    if (q('[data-c-save]')) {
+      const sp = A.spaces?.find((x) => x.name === A.spaceSel);
+      try {
+        await aApi('/settings/chat', { method: 'PUT', body: { mode: 'app', accountId: $('#c-sa').value, space: A.spaceSel, spaceName: sp?.displayName } });
+        await aApi('/settings/chat/test', { method: 'POST', body: {} });
+        A.chatMsg = { ok: true, text: `Connected — app_review_bot just said hello in ${sp?.displayName || A.spaceSel}.` };
+      } catch (err) { A.chatMsg = { ok: false, text: err.message }; }
+      return adminLoad('setup', true);
+    }
+    if (q('[data-a-chatsave]') || q('[data-a-chattest]')) {
+      const url = $('#a-chat')?.value.trim() || '';
+      try {
+        if (url) await aApi('/settings/chat', { method: 'PUT', body: { webhookUrl: url } });
+        else if (q('[data-a-chatsave]')) return toast('Paste a webhook URL first');
+        if (q('[data-a-chattest]')) await aApi('/settings/chat/test', { method: 'POST', body: {} });
+        A.chatMsg = { ok: true, text: q('[data-a-chattest]') ? 'Test message sent — check the Chat space.' : 'Webhook saved.' };
+      } catch (err) { A.chatMsg = { ok: false, text: err.message }; }
+      return adminLoad('setup', true);
+    }
+    if ((el = q('[data-a-toggle]'))) {
+      const k = el.dataset.aToggle; const cur = A.setup.prefs[k] !== false;
+      A.setup.prefs[k] = !cur; $('#view').innerHTML = vSetup();
+      await aApi('/settings/prefs', { method: 'PUT', body: { [k]: !cur } }); return toast('Saved');
+    }
+    if ((el = q('[data-a-app]'))) { if (el.disabled) return; const a = A.apps.find((x) => x.uuid === el.dataset.aApp); const f = el.dataset.f; return adminPatchApp(a.uuid, { [f]: !(f === 'tracked' ? a.tracked : a.notify) }); }
+    if ((el = q('[data-a-edit]'))) { A.editing = el.dataset.aEdit; $('#view').innerHTML = vManage(); $(`#a-name-${A.editing}`)?.focus(); return; }
+    if ((el = q('[data-a-namesave]'))) { const u = el.dataset.aNamesave; const ok = await adminPatchApp(u, { displayName: $(`#a-name-${u}`).value }); if (ok) { A.editing = null; $('#view').innerHTML = vManage(); toast('✏️ Saved'); } return; }
+    if ((el = q('[data-a-hook]'))) {
+      const a = A.apps.find((x) => x.uuid === el.dataset.aHook);
+      const url = prompt(`Send ${a.name}'s updates to a different Google Chat space?\n\nPaste that space's webhook URL, or leave empty to use the default space.`, '');
+      if (url === null) return;
+      if (await adminPatchApp(a.uuid, { chatWebhook: url.trim() })) toast(url.trim() ? '💬 Own Chat space set' : 'Using the default space');
+      return;
+    }
+    if ((el = q('[data-a-bulk]'))) {
+      const qq = A.manageQ.toLowerCase();
+      const ids = A.apps.filter((a) => (!A.manageAcc || a.accountId === A.manageAcc) && (!qq || `${a.name} ${a.bundleOrPackage}`.toLowerCase().includes(qq))).map((a) => a.uuid);
+      await aApi('/apps/bulk', { method: 'POST', body: { uuids: ids, tracked: el.dataset.aBulk === '1' } });
+      toast(`Updated ${ids.length} apps`); return adminLoad('manage', true);
+    }
+    if ((el = q('[data-info]'))) { $(`#info-${el.dataset.info}`)?.classList.toggle('on'); return; }
+    if (q('[data-g-editclient]')) { A.gmailEditClient = true; $('#view').innerHTML = vSetup(); return; }
+    if (q('[data-g-saveclient]')) {
+      try { await aApi('/gmail/client', { method: 'PUT', body: { clientId: $('#g-cid').value, clientSecret: $('#g-csec').value } }); A.gmailEditClient = false; toast('✅ OAuth client saved — now sign in'); }
+      catch (err) { toast('⚠️ ' + esc(err.message)); }
+      return adminLoad('setup', true);
+    }
+    if (q('[data-g-connect]')) { location.href = '/api/admin/gmail/connect'; return; }
+    if (q('[data-g-disconnect]')) { if (!confirm('Disconnect Gmail? Play approvals and rejections will stop being detected.')) return; await aApi('/gmail', { method: 'DELETE' }); A.gmailTest = null; toast('Gmail disconnected'); return adminLoad('setup', true); }
+    if (q('[data-g-togglequery]')) { A.gmailQuery = !A.gmailQuery; $('#view').innerHTML = vSetup(); return; }
+    if (q('[data-g-savequery]')) { try { await aApi('/gmail/query', { method: 'PUT', body: { query: $('#g-query').value } }); toast('Saved'); } catch (err) { toast('⚠️ ' + esc(err.message)); } return adminLoad('setup', true); }
+    if (q('[data-g-test]')) {
+      A.gmailTest = { loading: true }; $('#view').innerHTML = vSetup();
+      try { A.gmailTest = await aApi('/gmail/test', { method: 'POST' }); } catch (err) { A.gmailTest = { error: err.message }; }
+      $('#view').innerHTML = vSetup(); return;
+    }
+    if ((el = q('[data-a-level]'))) { A.auditLevel = el.dataset.aLevel; A.audit = null; $('#view').innerHTML = vAudit(); return adminLoad('audit', true); }
+    if (q('[data-a-reload]')) return adminLoad('audit', true);
+  });
+  document.addEventListener('change', async (e) => {
+    const el = e.target.closest('[data-a-pref]');
+    if (el) { const k = el.dataset.aPref; const v = el.type === 'time' ? el.value : Number(el.value); A.setup.prefs[k] = v; try { await aApi('/settings/prefs', { method: 'PUT', body: { [k]: v } }); toast('Saved'); } catch (err) { toast('⚠️ ' + esc(err.message)); } }
+    if (e.target.id === 'a-acc') { A.manageAcc = e.target.value; $('#view').innerHTML = vManage(); }
+  });
+  document.addEventListener('input', (e) => {
+    if (e.target.id === 'a-q') { A.manageQ = e.target.value; const pos = e.target.selectionStart; $('#view').innerHTML = vManage(); const i = $('#a-q'); i.focus(); i.setSelectionRange(pos, pos); }
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.id?.startsWith('a-name-')) $(`[data-a-namesave="${e.target.id.slice(7)}"]`)?.click(); });
+
+  // ── app drawer ──
+  function openApp(key) {
+    const a = M.apps.find((x) => x.key === key);
+    if (!a) return;
+    openKey = key;
+    const appId = a.key.split(':').slice(2).join(':');
+    const chs = Object.values(a.channels);
+    $('#drawer').innerHTML = `
+      <div class="dr-h">${appIcon(a.name, a.iconUrl, 'lg')}<div style="min-width:0;flex:1"><div class="nm">${esc(a.name)}</div>
+        <div class="sb">${storeIcon(a.store)} ${a.store === 'apple' ? 'iOS' : 'Android'} · ${esc(accLabel(a.accountId))}</div>
+        <div class="sb"><code>${esc(a.bundleOrPackage)}</code><button class="ibtn sq" style="height:24px;width:24px" data-copytext="${esc(a.bundleOrPackage)}" title="Copy">${icon('copy', 'xs')}</button></div></div>
+        <button class="ibtn sq" id="drClose" aria-label="Close">${icon('x')}</button></div>
+      <div class="dr-b">
+        <div class="dr-actions">${a.consoleUrl ? `<a class="ibtn primary" href="${esc(a.consoleUrl)}" target="_blank" rel="noopener">${icon('ext')}${a.store === 'apple' ? 'App Store Connect' : 'Play Console'}</a>` : ''}
+          ${a.store === 'apple' ? `<a class="ibtn" href="https://appstoreconnect.apple.com/apps/${encodeURIComponent(appId)}/testflight/ios" target="_blank" rel="noopener">TestFlight</a>` : `<a class="ibtn" href="https://play.google.com/store/apps/details?id=${encodeURIComponent(a.bundleOrPackage)}" target="_blank" rel="noopener">Store listing</a>`}</div>
+        <div class="sect">Current status</div>
+        <div class="chgrid">${chs.length ? chs.map((c) => `<div class="chbox"><div class="h">${esc(c.channelLabel)}</div>${badge(c)}
+          <div class="small">${esc(c.version || '—')}${c.liveVersion ? ` · live ${esc(c.liveVersion)}` : ''}${c.userFraction != null && c.category === 'live' ? ` · ${Math.round(c.userFraction * 100)}% rollout` : ''}</div>
+          <div class="tiny">${c.elapsedMs != null ? `<b style="color:${sla(c.elapsedMs).color}">${dur(c.elapsedMs)} in review</b> · ` : ''}changed ${ago(c.since)}</div>
+          ${c.submittedAt ? `<div class="tiny">Submitted ${fmt(c.submittedAt)}</div>` : ''}${c.reviewMs ? `<div class="tiny">Review took ${dur(c.reviewMs)}</div>` : ''}
+          ${c.reason ? `<div class="reason">${esc(c.reason)}</div>` : ''}</div>`).join('') : '<div class="chbox" style="grid-column:1/-1"><div class="small">No submissions recorded yet.</div></div>'}</div>
+        <div class="sect">History</div>
+        ${a.history.length ? `<ul class="tl">${a.history.map((h) => `<li style="--c:var(--c-${h.category});--b:var(--b-${h.category})"><span class="nd"></span>
+          <div class="w"><b>${esc(h.channelLabel)}</b> ${esc(h.version)} — ${esc(h.toLabel.replace(/^\S+\s/, ''))}</div>
+          <div class="d">${fmt(h.at)} · ${ago(h.at)}${h.fromLabel ? ` · from ${esc(h.fromLabel.replace(/^\S+\s/, ''))}` : ''}</div>
+          ${h.reason ? `<div class="r">${esc(h.reason)}</div>` : ''}</li>`).join('')}</ul>` : '<div class="small">No changes recorded yet.</div>'}
+      </div>`;
+    $('#drawer').classList.add('on'); $('#scrim').classList.add('on');
+    $('#drawer').setAttribute('aria-hidden', 'false');
+    $('#drClose').focus();
+  }
+  const closeDrawer = () => { openKey = null; $('#drawer').classList.remove('on'); $('#scrim').classList.remove('on'); $('#drawer').setAttribute('aria-hidden', 'true'); };
+  $('#scrim').onclick = closeDrawer;
+
+  // ── command palette ──
+  let palItems = [], palIdx = 0;
+  function palRender() {
+    const q = $('#palIn').value.trim().toLowerCase();
+    const apps = M ? M.apps.filter((a) => !q || `${a.name} ${a.bundleOrPackage} ${accName(a.accountId)} ${Object.values(a.channels).map((c) => c.version + ' ' + c.label).join(' ')}`.toLowerCase().includes(q)).slice(0, 30) : [];
+    const views = Object.entries(VIEWS).filter(([, v]) => !q || v.t.toLowerCase().includes(q)).map(([k, v]) => ({ kind: 'view', k, v }));
+    const acts = [{ kind: 'act', id: 'refresh', t: 'Refresh all accounts', i: 'refresh' }, { kind: 'act', id: 'theme', t: 'Toggle dark / light theme', i: 'moon' }].filter((x) => !q || x.t.toLowerCase().includes(q));
+    palItems = [...apps.map((a) => ({ kind: 'app', a })), ...views, ...acts];
+    palIdx = Math.min(palIdx, Math.max(0, palItems.length - 1));
+    let i = 0, html = '';
+    const it = (inner) => `<div class="pal-it ${i === palIdx ? 'on' : ''}" data-idx="${i++}">${inner}</div>`;
+    if (apps.length) html += '<div class="pal-sec">Apps</div>' + apps.map((a) => {
+      const top = Object.values(a.channels).sort((x, y) => (y.since || 0) - (x.since || 0))[0];
+      return it(`${appIcon(a.name, a.iconUrl, 'sm')}<div style="min-width:0"><div class="nm">${esc(a.name)}</div><div class="sb">${storeIcon(a.store)} ${esc(a.bundleOrPackage)} · ${esc(accName(a.accountId))}</div></div><span class="rt">${top ? badge(top, 'sm') : ''}</span>`);
+    }).join('');
+    if (views.length) html += '<div class="pal-sec">Go to</div>' + views.map((x) => it(`<span class="ico sm plain">${icon(x.v.i, 'xs')}</span><div class="nm">${x.v.t}</div>`)).join('');
+    if (acts.length) html += '<div class="pal-sec">Actions</div>' + acts.map((x) => it(`<span class="ico sm plain">${icon(x.i, 'xs')}</span><div class="nm">${x.t}</div>`)).join('');
+    $('#palList').innerHTML = html || '<div class="empty" style="padding:28px"><b>No matches</b></div>';
+    $('.pal-it.on')?.scrollIntoView({ block: 'nearest' });
+  }
+  const openPal = () => { $('#pal').classList.add('on'); $('#palIn').value = ''; palIdx = 0; palRender(); setTimeout(() => $('#palIn').focus(), 10); };
+  const closePal = () => $('#pal').classList.remove('on');
+  function palPick(idx) {
+    const x = palItems[idx]; if (!x) return;
+    closePal();
+    if (x.kind === 'app') openApp(x.a.key);
+    else if (x.kind === 'view') go(x.k);
+    else if (x.id === 'refresh') refresh();
+    else toggleTheme();
+  }
+  $('#openPal').onclick = openPal;
+  $('#palIn').addEventListener('input', () => { palIdx = 0; palRender(); });
+  $('#palIn').addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') { palIdx = Math.min(palItems.length - 1, palIdx + 1); palRender(); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { palIdx = Math.max(0, palIdx - 1); palRender(); e.preventDefault(); }
+    else if (e.key === 'Enter') palPick(palIdx);
+  });
+  $('#palList').addEventListener('click', (e) => { const it = e.target.closest('.pal-it'); if (it) palPick(Number(it.dataset.idx)); });
+  $('#pal').addEventListener('click', (e) => { if (e.target.id === 'pal') closePal(); });
+
+  // ── toasts + desktop alerts ──
+  function toast(html, ms = 4200) {
+    const el = document.createElement('div');
+    el.className = 'toast'; el.innerHTML = html;
+    $('#toasts').append(el);
+    setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 220); }, ms);
+  }
+  const notifOn = () => LS.get('notif') === '1' && 'Notification' in window && Notification.permission === 'granted';
+  const paintNotif = () => $('#notif').classList.toggle('on', notifOn());
+  $('#notif').onclick = async () => {
+    if (!('Notification' in window)) return toast('This browser does not support desktop notifications.');
+    if (notifOn()) { LS.set('notif', '0'); paintNotif(); return toast('🔕 Desktop alerts off'); }
+    const p = await Notification.requestPermission();
+    LS.set('notif', p === 'granted' ? '1' : '0'); paintNotif();
+    toast(p === 'granted' ? '🔔 Desktop alerts on. You’ll be notified while this tab is open.' : 'Notifications are blocked in your browser settings.');
+  };
+
+  // ── theme ──
+  const curTheme = () => document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  function toggleTheme() { const t = curTheme() === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = t; LS.set('theme', t); }
+  if (LS.get('theme')) document.documentElement.dataset.theme = LS.get('theme');
+  $('#theme').onclick = toggleTheme;
+
+  // ── global events ──
+  $('#storeSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) go(S.view, { store: b.dataset.v, account: '' }); });
+  $('#accSel').addEventListener('change', (e) => go(S.view, { account: e.target.value }));
+  document.addEventListener('click', async (e) => {
+    const t = e.target;
+    if (t.closest('a[href^="http"]')) return; // external links just open
+    const c = t.closest('[data-copy]');
+    if (c) { const r = M.attention.filter(passes)[Number(c.dataset.copy)]; try { await navigator.clipboard.writeText(r?.reason || ''); toast('📋 Reason copied'); } catch { toast('Copy failed'); } return; }
+    const ct = t.closest('[data-copytext]');
+    if (ct) { try { await navigator.clipboard.writeText(ct.dataset.copytext); toast('📋 Copied'); } catch { toast('Copy failed'); } return; }
+    if (t.closest('#drClose')) return closeDrawer();
+    const g = t.closest('[data-go]'); if (g) return go(g.dataset.go);
+    const l = t.closest('[data-l]'); if (l) { S.layout = l.dataset.l; LS.set('layout', S.layout); return render(); }
+    const ac = t.closest('[data-act]'); if (ac) { S.actCat = ac.dataset.act; return render(); }
+    const fa = t.closest('[data-filter-acc]'); if (fa) { const a = M.accounts.find((x) => x.id === fa.dataset.filterAcc); return go('apps', { account: a.id, store: a.store }); }
+    const ap = t.closest('[data-app]'); if (ap) return openApp(ap.dataset.app);
+  });
+  document.addEventListener('keydown', (e) => {
+    const typing = /INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName);
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); return $('#pal').classList.contains('on') ? closePal() : openPal(); }
+    if (e.key === 'Escape') { closePal(); closeDrawer(); return; }
+    if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === '/') { e.preventDefault(); openPal(); }
+    else if (e.key === 'r') refresh();
+    else if (e.key === 't') toggleTheme();
+    else if (/^[1-6]$/.test(e.key)) go(Object.keys(VIEWS)[Number(e.key) - 1]);
+  });
+
+  // ── render + data ──
+  function countUp() {
+    $$('[data-count]').forEach((el) => {
+      const to = Number(el.dataset.count); if (!to) return;
+      const t0 = performance.now();
+      const step = (t) => { const p = Math.min(1, (t - t0) / 700); el.textContent = Math.round(to * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(step); };
+      requestAnimationFrame(step);
+    });
+  }
+  function render() {
+    if (!M) return;
+    renderNav(); renderTop();
+    if (VIEWS[S.view].admin && !M.admin) S.view = 'overview';
+    $('#view').innerHTML = { overview: vOverview, review: vReview, attention: vAttention, apps: vApps, accounts: vAccounts, activity: vActivity, setup: vSetup, manage: vManage, audit: vAudit }[S.view]();
+    if (VIEWS[S.view].admin) adminLoad(S.view);
+    const att = M.attention.length;
+    document.title = (att ? `(${att}) ` : '') + `${VIEWS[S.view].t} · Review Radar`;
+  }
+  function skeleton() {
+    $('#view').innerHTML = `<div class="sk" style="height:58px;width:min(520px,80%);margin:6px 0 18px"></div><div class="kpis">${'<div class="sk" style="height:142px"></div>'.repeat(4)}</div><div class="sk" style="height:80px;margin-bottom:18px"></div><div class="two"><div class="sk" style="height:380px"></div><div class="sk" style="height:380px"></div></div>`;
+  }
+
+  async function load({ manual = false } = {}) {
+    try {
+      const res = await fetch('/api/dashboard', { credentials: 'same-origin', cache: 'no-store' });
+      if (res.status === 401) return location.reload();
+      const next = await res.json();
+      tz = next.tz || tz;
+      const ids = next.activity.map((e) => e.id);
+      if (firstLoad) {
+        if (seenIds.size) freshIds = new Set(ids.filter((id) => !seenIds.has(id)));
+      } else {
+        const prev = new Set(M.activity.map((e) => e.id));
+        const added = next.activity.filter((e) => !prev.has(e.id));
+        added.forEach((e) => freshIds.add(e.id));
+        if (added.length) {
+          const e = added[0];
+          toast(`<span style="font-size:20px">${esc(e.emoji)}</span><div><b>${esc(e.appName)} ${esc(e.version)}</b><div class="small">${esc(e.channelLabel)} → ${esc(e.label)}${added.length > 1 ? ` · +${added.length - 1} more` : ''}</div></div>`, 7000);
+          if (notifOn()) added.slice(0, 3).forEach((x) => { try { new Notification(`${x.emoji} ${x.appName} ${x.version}`, { body: `${x.channelLabel}: ${x.label}\n${x.accountName}`, tag: x.id }); } catch {} });
+        } else if (manual) toast('✅ Up to date. No new changes.');
+      }
+      seenIds = new Set(ids); LS.set('seen', JSON.stringify(ids.slice(0, 200)));
+      M = next;
+      if (M.user && $('#me').hidden) { $('#me').hidden = false; $('#meEmail').textContent = M.user; $('#meav').textContent = M.user[0].toUpperCase(); }
+      render();
+      if (firstLoad) { firstLoad = false; if (S.view === 'overview') countUp(); }
+    } catch (err) {
+      console.error(err);
+      $('#liveTxt').textContent = 'Offline · retrying…';
+      $('#pulse').classList.add('bad');
+      if (firstLoad) $('#view').innerHTML = `<div class="card">${empty('📡', "Can't reach the server", 'Retrying every 30 seconds.')}</div>`;
+    }
+  }
+  async function refresh() {
+    const b = $('#refresh'); if (b.disabled) return;
+    b.disabled = true; b.classList.add('spin');
+    toast('↻ Polling Apple and Google for every account…', 2500);
+    await fetch('/api/refresh', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
+    setTimeout(async () => { await load({ manual: true }); b.disabled = false; b.classList.remove('spin'); }, 5000);
+  }
+  $('#refresh').onclick = refresh;
+  $('#logout').onclick = async () => { await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }).catch(() => {}); location.href = '/login'; };
+
+  (() => {
+    const m = location.hash.match(/[?&](gmail|chat)=([^&]+)/);
+    if (!m) return;
+    const v = decodeURIComponent(m[2]);
+    const okMsg = m[1] === 'chat' ? '💬 Signed in to Google Chat — now click Find my spaces' : '📬 Gmail connected — the bot will read Play emails from now on';
+    setTimeout(() => toast(v === 'ok-sent' ? '✅ Connected — app_review_bot just posted a hello in your space' : v === 'ok' ? okMsg : `⚠️ ${m[1] === 'chat' ? 'Google Chat' : 'Gmail'}: ` + esc(v.replace(/^error:/, '')), 7000), 600);
+    if (m[1] === 'chat') A.chatMode = 'user';
+    history.replaceState(null, '', '#/setup');
+  })();
+  readHash();
+  paintNotif();
+  skeleton();
+  load();
+  setInterval(() => load(), 30000);
+  setInterval(() => { if (M && !$('#drawer').classList.contains('on') && !$('#pal').classList.contains('on') && !document.hidden) render(); }, 60000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+node_modules/
+.env
+.env.*
+!.env.example
+.vercel/
+keys/*
+!keys/.gitkeep
+data/*
+!data/.gitkeep
+config/apps.json
+*.p8
+*.pem
+*service-account*.json
+client_secret_*.json
+.DS_Store
+.playwright-mcp/
