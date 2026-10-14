@@ -74,11 +74,30 @@ export function applyPrefs(config, p = {}) {
 const maskUrl = (u) => (isSpaceTarget(u) ? u : u ? u.replace(/(key=)[^&]+/, '$1••••').replace(/(token=)[^&]+/, '$1••••') : '');
 const validChatUrl = (u) => isSpaceTarget(u) || /^https:\/\/chat\.googleapis\.com\/v1\/spaces\/[^/]+\/messages\?/.test(String(u || ''));
 
-export function botCard(title, lines = [], { subtitle } = {}) {
+export function helloText(apps, accounts) {
+  return [
+    '🤖  *App Review Bot is connected* 👋',
+    '',
+    "I'll post here the moment anything changes on the App Store, TestFlight or Google Play:",
+    '',
+    '📤  Sent for review',
+    '🔍  In review',
+    '✅  Approved',
+    '🚀  Live',
+    '❌  Rejected — with the reason',
+    '📩  Any other Google Play message',
+    '',
+    `👀  Watching *${apps} app${apps === 1 ? '' : 's'}* across *${accounts} account${accounts === 1 ? '' : 's'}*`,
+    '',
+    '— 🤖 app_review_bot · Review Radar',
+  ].join('\n');
+}
+
+export function botCard(title, lines = [], { subtitle, chatText } = {}) {
   const plain = (t) => String(t).replace(/<b>([\s\S]*?)<\/b>/g, '*$1*').replace(/<br\s*\/?>/g, '\n').replace(/<[^>]+>/g, '');
   return {
     text: title,
-    chatText: [`🤖 *${plain(title)}*`, ...lines.map(plain)].join('\n'),
+    chatText: chatText || [`🤖 *${plain(title)}*`, '', ...lines.map(plain)].join('\n'),
     cardsV2: [
       {
         cardId: `bot-${Date.now()}`,
@@ -321,7 +340,7 @@ export function adminRouter(ctx) {
         botCard('👋 Hi! app_review_bot is connected.', [
           `I'll post here whenever an app's review status changes on the App Store, TestFlight or Google Play — sent for review, in review, approved, live, or rejected (with the reason).`,
           `Watching <b>${tracked}</b> app${tracked === 1 ? '' : 's'} across <b>${registry.list().length}</b> account${registry.list().length === 1 ? '' : 's'}.`,
-        ]),
+        ], { chatText: helloText(tracked, registry.list().length) }),
         { webhook: url, threadKey: 'app-review-bot-hello', sa }
       );
       audit('chat.test_sent', { actor: currentActor, target: BOT_NAME });
@@ -485,7 +504,7 @@ export function adminRouter(ctx) {
       if (settings.chat?.mode !== 'app' && isSpaceTarget(config.chatSpaceLocked || settings.chat?.space)) {
         try {
           const tracked = Object.values(store.data.apps).filter((a) => !a.hidden).length;
-          await sendToChat(botCard('👋 Hi! app_review_bot is connected.', [`I'll post every App Store, TestFlight and Google Play update for the <b>${tracked}</b> watched app${tracked === 1 ? '' : 's'} here — sent for review, in review, approved, live, or rejected (with the reason).`]), { webhook: config.chatSpaceLocked || settings.chat.space, threadKey: 'app-review-bot-hello' });
+          await sendToChat(botCard('👋 Hi! app_review_bot is connected.', [`I'll post every App Store, TestFlight and Google Play update for the <b>${tracked}</b> watched app${tracked === 1 ? '' : 's'} here — sent for review, in review, approved, live, or rejected (with the reason).`], { chatText: helloText(tracked, registry.list().length) }), { webhook: config.chatSpaceLocked || settings.chat.space, threadKey: 'app-review-bot-hello' });
           audit('chat.test_sent', { actor: currentActor, target: settings.chat.spaceName });
           return back('ok-sent');
         } catch (e) {

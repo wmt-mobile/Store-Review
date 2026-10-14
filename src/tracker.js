@@ -200,8 +200,9 @@ export class Tracker {
     const acc = this.accountById(accountId);
     await this.send(
       alertCard(
-        `${acc?.name || accountId}: ${context} failing`,
-        `${msg}\n\nCheck the API key / service account access for this account. Polling continues; this alert repeats at most every 6h.`
+        `${acc?.name || accountId} · ${context === 'poll' ? 'store check' : context} failing`,
+        `${msg}\n\nCheck the API key / service account access for this account. Polling continues; this alert repeats at most every 6h.`,
+        { error: msg, hint: 'Check the API key / service account access in Review Radar → Setup. Checks keep running; this alert repeats at most every 6 h.' }
       ),
       { webhook: this.config.chatWebhook }
     );

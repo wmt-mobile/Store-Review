@@ -130,6 +130,22 @@ export async function sendToChat(message, { webhook = config.chatWebhook, sa } =
   throw new Error('Chat: retries exhausted');
 }
 
+// ── Google Chat text layout (used when posting as a user; cards aren't allowed there) ──
+const SIGN = '— 🤖 app_review_bot · Review Radar';
+const clean = (t) => String(t ?? '').replace(/[*_~`]/g, (c) => c); // keep text as-is (Chat only formats paired markers)
+const box = (t, max = 900) => '```\n' + String(t).trim().slice(0, max).replace(/```/g, "'''") + '\n```';
+const NEXT_STEP = {
+  submitted: '⏳ Waiting for the review to start',
+  in_review: '👀 Review in progress',
+  approved: '👉 Approved — ready for you to release',
+  live: '🎉 Live — available to users now',
+  rejected: '👉 Action needed — fix the issue and resubmit',
+  action: '👉 Action needed in the console',
+  removed: '👉 Action needed — the app is no longer available',
+  draft: '📝 Not submitted yet',
+  testing: '🧪 Available to internal testers',
+};
+
 const kv = (label, text) => ({ decoratedText: { topLabel: label, text: String(text), wrapText: true } });
 
 /** Card for one status change. */
@@ -147,17 +163,25 @@ export function statusCard({ app, account, channel, version, from, to, at, submi
   const sections = [{ widgets }];
   if (buttons.length) sections.push({ widgets: [{ buttonList: { buttons } }] });
 
-  const where = `${app.store === 'google' ? 'Google Play · ' : ''}${channelLabel(channel)}`;
-  const lines = [`${to.emoji} *${app.name}* · *${to.label}*`, `${where} · v${version || '—'}`];
-  if (from && from.label !== to.label) lines.push(`_${from.emoji} ${from.label}  →  ${to.emoji} ${to.label}_`);
-  if (submittedAt) lines.push(`⏱️ ${fmtDuration(at - submittedAt)} since submission`);
-  if (reason) lines.push('', `*Reason:* ${String(reason).slice(0, 1500)}`, '');
-  lines.push(`🏢 ${account?.name || app.accountId}  ·  🕒 ${fmtTime(at)}`);
-  const lk = links.filter((l) => l?.url).map((l) => `<${l.url}|${l.text}>`).join('  ·  ');
-  if (lk) lines.push(`🔗 ${lk}`);
+  const store = app.store === 'google' ? `Google Play · ${channelLabel(channel)}` : channelLabel(channel);
+  const done = ['approved', 'live', 'rejected', 'removed'].includes(to.category);
+  const lines = [
+    `${to.emoji}  *${to.label.toUpperCase()}*`,
+    `*${clean(app.name)}*`,
+    '',
+    `📱  ${store}   ·   v${clean(version || '—')}`,
+  ];
+  if (from && from.label !== to.label) lines.push(`🔄  ${from.label}  →  *${to.label}*`);
+  if (submittedAt) lines.push(`⏱️  ${done ? 'Review took' : 'Waiting for'} *${fmtDuration(at - submittedAt)}*`);
+  if (reason) lines.push('', '📝  *Reason*', box(reason));
+  if (NEXT_STEP[to.category]) lines.push('', NEXT_STEP[to.category]);
+  lines.push('', `🏢  ${clean(account?.name || app.accountId)}`, `🕒  ${fmtTime(at)}`);
+  const lk = links.filter((l) => l?.url).map((l) => `<${l.url}|${l.text} ↗>`);
+  if (lk.length) lines.push(`🔗  ${lk.join('   ·   ')}`);
+  lines.push('', SIGN);
   return {
     text: `${to.emoji} ${app.name} ${version || ''} – ${to.label}`,
-    chatText: lines.join('\n') + '\n_— 🤖 app_review_bot_',
+    chatText: lines.join('\n'),
     cardsV2: [
       {
         cardId: `status-${Date.now()}`,
@@ -182,21 +206,25 @@ export function storeMessageCard({ app, subject, from, snippet, emailUrl, at }) 
   widgets.push(kv('Time', fmtTime(at || Date.now())));
   const sections = [{ widgets }];
   if (emailUrl) sections.push({ widgets: [{ buttonList: { buttons: [{ text: 'Open email', onClick: { openLink: { url: emailUrl } } }] } }] });
-  const t = [`📩 *${app ? app.name : 'Google Play Console'}* · New message from Google Play`, `*${subject || '(no subject)'}*`];
-  if (snippet) t.push(String(snippet).slice(0, 800));
-  t.push(`🕒 ${fmtTime(at || Date.now())}`);
-  if (emailUrl) t.push(`🔗 <${emailUrl}|Open email>`);
+  const t = ['📩  *NEW MESSAGE FROM GOOGLE PLAY*', `*${clean(app ? app.name : 'Google Play Console')}*`, '', `✉️  *${clean(subject || '(no subject)')}*`];
+  if (snippet) t.push(box(snippet, 700));
+  t.push('', '👉 Open the email for the full details', '', `🕒  ${fmtTime(at || Date.now())}`);
+  if (emailUrl) t.push(`🔗  <${emailUrl}|Open email ↗>`);
+  t.push('', SIGN);
   return {
     text: `📩 ${app ? app.name + ' – ' : ''}${subject || 'Google Play Console message'}`,
-    chatText: t.join('\n') + '\n_— 🤖 app_review_bot_',
+    chatText: t.join('\n'),
     cardsV2: [{ cardId: `mail-${Date.now()}`, card: { header: { title: `📩 ${app ? app.name : 'Google Play Console'}`, subtitle: 'New message from Google Play', imageUrl: app?.iconUrl || undefined, imageType: 'SQUARE' }, sections } }],
   };
 }
 
-export function alertCard(title, text) {
+export function alertCard(title, text, { error, hint } = {}) {
+  const chatText = error
+    ? ['⚠️  *SYNC PROBLEM*', `*${clean(title)}*`, '', box(error, 600), '', `👉 ${hint || 'Check the account access in Review Radar → Setup.'}`, '', `🕒  ${fmtTime(Date.now())}`, '', SIGN].join('\n')
+    : ['⚠️  *' + clean(title) + '*', '', String(text), '', SIGN].join('\n');
   return {
     text: `⚠️ ${title}`,
-    chatText: `⚠️ *${title}*\n${text}\n_— 🤖 app_review_bot_`,
+    chatText,
     cardsV2: [{ cardId: `alert-${Date.now()}`, card: { header: { title: `⚠️ ${title}` }, sections: [{ widgets: [{ textParagraph: { text: escapeHtml(text) } }] }] } }],
   };
 }
