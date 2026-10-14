@@ -56,7 +56,7 @@ async function sendViaUser(space, message, threadKey) {
       const { data } = await chatUser.api.spaces.messages.create({
         parent: space,
         messageReplyOption: threadKey ? 'REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD' : undefined,
-        requestBody: { text: cardToText(message), ...(threadKey ? { thread: { threadKey } } : {}) },
+        requestBody: { text: message.chatText || cardToText(message), ...(threadKey ? { thread: { threadKey } } : {}) },
       });
       return data;
     } catch (e) {
@@ -101,12 +101,16 @@ async function sendViaApp(space, message, threadKey, sa) {
   }
 }
 
-export async function sendToChat(message, { webhook = config.chatWebhook, threadKey, sa } = {}) {
+export async function sendToChat(message, { webhook = config.chatWebhook, sa } = {}) {
+  // Every update is posted as its own new message (no threads), by request.
+  const threadKey = undefined;
+  const { chatText, ...payload } = message;
+  message = payload;
   if (!webhook) {
     console.warn('[chat] no Chat target configured; message dropped');
     return { skipped: true };
   }
-  if (isSpaceTarget(webhook)) return !sa && delivery === 'user' ? sendViaUser(webhook, message, threadKey) : sendViaApp(webhook, message, threadKey, sa);
+  if (isSpaceTarget(webhook)) return !sa && delivery === 'user' ? sendViaUser(webhook, { ...message, chatText }, threadKey) : sendViaApp(webhook, message, threadKey, sa);
   const url = new URL(webhook);
   if (threadKey) url.searchParams.set('messageReplyOption', 'REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD');
   const body = threadKey ? { ...message, thread: { threadKey } } : message;
@@ -143,8 +147,17 @@ export function statusCard({ app, account, channel, version, from, to, at, submi
   const sections = [{ widgets }];
   if (buttons.length) sections.push({ widgets: [{ buttonList: { buttons } }] });
 
+  const where = `${app.store === 'google' ? 'Google Play · ' : ''}${channelLabel(channel)}`;
+  const lines = [`${to.emoji} *${app.name}* · *${to.label}*`, `${where} · v${version || '—'}`];
+  if (from && from.label !== to.label) lines.push(`_${from.emoji} ${from.label}  →  ${to.emoji} ${to.label}_`);
+  if (submittedAt) lines.push(`⏱️ ${fmtDuration(at - submittedAt)} since submission`);
+  if (reason) lines.push('', `*Reason:* ${String(reason).slice(0, 1500)}`, '');
+  lines.push(`🏢 ${account?.name || app.accountId}  ·  🕒 ${fmtTime(at)}`);
+  const lk = links.filter((l) => l?.url).map((l) => `<${l.url}|${l.text}>`).join('  ·  ');
+  if (lk) lines.push(`🔗 ${lk}`);
   return {
     text: `${to.emoji} ${app.name} ${version || ''} – ${to.label}`,
+    chatText: lines.join('\n') + '\n_— 🤖 app_review_bot_',
     cardsV2: [
       {
         cardId: `status-${Date.now()}`,
@@ -169,8 +182,13 @@ export function storeMessageCard({ app, subject, from, snippet, emailUrl, at }) 
   widgets.push(kv('Time', fmtTime(at || Date.now())));
   const sections = [{ widgets }];
   if (emailUrl) sections.push({ widgets: [{ buttonList: { buttons: [{ text: 'Open email', onClick: { openLink: { url: emailUrl } } }] } }] });
+  const t = [`📩 *${app ? app.name : 'Google Play Console'}* · New message from Google Play`, `*${subject || '(no subject)'}*`];
+  if (snippet) t.push(String(snippet).slice(0, 800));
+  t.push(`🕒 ${fmtTime(at || Date.now())}`);
+  if (emailUrl) t.push(`🔗 <${emailUrl}|Open email>`);
   return {
     text: `📩 ${app ? app.name + ' – ' : ''}${subject || 'Google Play Console message'}`,
+    chatText: t.join('\n') + '\n_— 🤖 app_review_bot_',
     cardsV2: [{ cardId: `mail-${Date.now()}`, card: { header: { title: `📩 ${app ? app.name : 'Google Play Console'}`, subtitle: 'New message from Google Play', imageUrl: app?.iconUrl || undefined, imageType: 'SQUARE' }, sections } }],
   };
 }
@@ -178,6 +196,7 @@ export function storeMessageCard({ app, subject, from, snippet, emailUrl, at }) 
 export function alertCard(title, text) {
   return {
     text: `⚠️ ${title}`,
+    chatText: `⚠️ *${title}*\n${text}\n_— 🤖 app_review_bot_`,
     cardsV2: [{ cardId: `alert-${Date.now()}`, card: { header: { title: `⚠️ ${title}` }, sections: [{ widgets: [{ textParagraph: { text: escapeHtml(text) } }] }] } }],
   };
 }

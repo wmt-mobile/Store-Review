@@ -75,8 +75,10 @@ const maskUrl = (u) => (isSpaceTarget(u) ? u : u ? u.replace(/(key=)[^&]+/, '$1â
 const validChatUrl = (u) => isSpaceTarget(u) || /^https:\/\/chat\.googleapis\.com\/v1\/spaces\/[^/]+\/messages\?/.test(String(u || ''));
 
 export function botCard(title, lines = [], { subtitle } = {}) {
+  const plain = (t) => String(t).replace(/<b>([\s\S]*?)<\/b>/g, '*$1*').replace(/<br\s*\/?>/g, '\n').replace(/<[^>]+>/g, '');
   return {
     text: title,
+    chatText: [`ðŸ¤– *${plain(title)}*`, ...lines.map(plain)].join('\n'),
     cardsV2: [
       {
         cardId: `bot-${Date.now()}`,
