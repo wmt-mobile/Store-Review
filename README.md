@@ -61,7 +61,7 @@ bun run test              # node --test
 Locally, the built-in scheduler polls on its own. Set `NO_SCHEDULER=true` if the cron endpoint drives polling instead. **Don't run a local scheduler and Vercel at the same time**, or every update is posted twice.
 
 ## Deploy (Vercel)
-1. Push to `main`. Vercel builds automatically (Git integration).
+1. Push to `main` on **github.com/wmt-mobile/Store-Review**. Vercel (project `store-review`, team `mobile-webmobtechcs-projects`) builds and deploys automatically to **https://store-review-eosin.vercel.app**.
 2. Set the environment variables above in Vercel.
 3. In Google Cloud → the OAuth client → Authorized redirect URIs, add `https://<your-domain>/api/admin/gmail/callback`. Gmail and Chat sign-ins use the same callback.
 4. Supabase SQL (once). This calls the tick endpoint every minute:
