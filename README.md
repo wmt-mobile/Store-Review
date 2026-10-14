@@ -1,5 +1,7 @@
 # Review Radar · app_review_bot
 
+📚 **Full documentation: [docs/](docs/README.md)** · architecture, configuration, how-to recipes, customizing, database, troubleshooting.
+
 Real-time **App Store, TestFlight and Google Play** review status for every WebMob app, in one dashboard. Every change is posted to **Google Chat** within about a minute.
 
 ```
