@@ -89,6 +89,41 @@ export function deriveTrackState(track, prev, { initialized }) {
   return { version: prev.version, status: prev.status, extra };
 }
 
+/** Pure: version name of a Play release ("193 (1.3.80)" → "1.3.80", "1.0.0" → "1.0.0"). */
+export function releaseVersionName(name) {
+  const v = String(name || '').trim();
+  const m = v.match(/^\d+\s*\((.+)\)$/);
+  if (m) return m[1].trim();
+  return /^\d+$/.test(v) ? '' : v;
+}
+
+/** Pure: the "Current version" shown on the public Play Store page. */
+export function parseListingVersion(html) {
+  const m = String(html || '').match(/\[\[\["(\d+(?:\.\d+)+[^"]{0,40})"\]\]/);
+  return m ? m[1] : null;
+}
+
+/**
+ * The Play API looks the same before and after Google approves a release, and Google
+ * often sends no approval email. Once the public store page shows the new version, the
+ * release has been approved and published.
+ */
+export async function publicPlayVersion(packageName) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 10_000);
+  try {
+    const res = await fetch(`https://play.google.com/store/apps/details?id=${encodeURIComponent(packageName)}&hl=en&gl=IN`, {
+      signal: ctrl.signal,
+      headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36', 'Accept-Language': 'en' },
+    });
+    return res.ok ? parseListingVersion(await res.text()) : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function pollPlayApp(account, tracker, packageName) {
   const key = appKeyOf('google', account.id, packageName);
   const tracks = await fetchTracks(account, packageName);
@@ -96,7 +131,16 @@ export async function pollPlayApp(account, tracker, packageName) {
   for (const t of tracks) {
     const prev = tracker.d.channels[key]?.[t.track];
     const next = deriveTrackState(t, prev, { initialized });
-    if (next) await tracker.update(key, t.track, next);
+    if (!next) continue;
+    // Production release waiting on Google: published once the store page shows it.
+    const name = releaseVersionName(next.version);
+    const waiting = ['submitted', 'in_review', 'approved'].includes(describe('google', t.track, next.status).category);
+    if (t.track === 'production' && name && waiting) {
+      const onStore = await publicPlayVersion(packageName);
+      next.extra.storeVersion = onStore;
+      if (onStore === name) next.status = next.extra.releaseStatus === 'inProgress' ? 'ROLLOUT' : 'LIVE';
+    }
+    await tracker.update(key, t.track, next);
   }
 }
 

@@ -293,3 +293,13 @@ test('rejection Chat message carries the AI summary and the full email', async (
   assert.match(c.chatText, /📧 {2}\*Full email\*/);
   assert.ok(c.chatText.length <= 4096, `fits one Chat message (${c.chatText.length})`);
 });
+
+test('play: public store page version marks a release live', async () => {
+  const { releaseVersionName, parseListingVersion } = await import('../src/google/play.js');
+  assert.equal(releaseVersionName('193 (1.3.80)'), '1.3.80');
+  assert.equal(releaseVersionName('193(1.3.80)'), '1.3.80');
+  assert.equal(releaseVersionName('1.0.0'), '1.0.0');
+  assert.equal(releaseVersionName('193'), '');
+  assert.equal(parseListingVersion('x,[[["1.3.78"]],[[[35,"15"]]]'), '1.3.78');
+  assert.equal(parseListingVersion('<html>Varies with device</html>'), null);
+});
