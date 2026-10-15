@@ -581,7 +581,7 @@ main{padding:0 22px 60px 18px}
 .xax{display:flex;gap:var(--gap,14px);padding:6px 4px 0;height:22px}
 .xax span{flex:1;text-align:center;font-size:11px;color:var(--faint);font-weight:600;min-width:0;overflow:hidden}
 .xax span.on{color:var(--text)}
-.tip{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--panel);box-shadow:0 10px 30px -8px rgba(0,0,0,.25);border:1px solid var(--line);border-radius:12px;padding:8px 10px;font-size:11.5px;white-space:nowrap;z-index:5;opacity:0;pointer-events:none;transition:opacity .12s}
+.tip{position:absolute;top:4px;left:50%;transform:translateX(-50%);background:var(--panel);box-shadow:0 10px 30px -8px rgba(0,0,0,.25);border:1px solid var(--line);border-radius:12px;padding:8px 10px;font-size:11.5px;white-space:nowrap;z-index:30;opacity:0;pointer-events:none;transition:opacity .12s}
 .cbar:hover .tip{opacity:1}
 .cbar:nth-child(-n+2) .tip{left:0;transform:none}
 .cbar:nth-last-child(-n+3) .tip{left:auto;right:0;transform:none}
@@ -729,6 +729,35 @@ main{padding:0 22px 60px 18px}
 .mail-meta span{font-size:12px;color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #mailFrame{flex:1;border:0;width:100%;background:#fff}
 @media (max-width:860px){.mailm{padding:0}.mail-box{height:100%;border-radius:0}}
+/* app drawer */
+.drawer{border-left:0;background:var(--bg);width:min(520px,100vw)}
+.dr-h{background:var(--panel);border-bottom:0;padding:20px}
+.dr-h .ibtn{background:var(--bg-2)}
+.dr-b{padding:18px 18px 30px}
+.dr-actions .ibtn:not(.primary){background:var(--panel)}
+.stc{background:var(--panel);border-radius:20px;padding:16px 18px;margin-bottom:12px;position:relative;overflow:hidden}
+.stc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c)}
+.stc-h{display:flex;align-items:center;gap:8px}
+.stc-h .grow{flex:1}
+.stc-v{font-size:26px;font-weight:800;letter-spacing:-.03em;margin:10px 0 12px}
+.stc-g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.stc-g div{background:var(--panel-2);border-radius:12px;padding:9px 12px;min-width:0}
+.stc-g span{display:block;font-size:11px;color:var(--faint);font-weight:600}
+.stc-g b{display:block;font-size:13.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stc-r{background:var(--panel-2);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--text-2);white-space:pre-line}
+.stc .aisum{background:var(--b);}
+.tl2{list-style:none;margin:0;padding:0;background:var(--panel);border-radius:20px;padding:6px 16px 10px}
+.tl2-day{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--faint);font-weight:700;padding:14px 0 6px}
+.tl2-it{display:flex;gap:12px;position:relative;padding:0 0 14px}
+.tl2-it::before{content:"";position:absolute;left:6px;top:16px;bottom:0;width:2px;background:var(--line)}
+.tl2-it:has(+ .tl2-day)::before,.tl2-it:last-child::before{display:none}
+.tl2-nd{width:14px;height:14px;border-radius:50%;background:var(--c);box-shadow:0 0 0 4px var(--b);flex:none;margin-top:3px;position:relative;z-index:1}
+.tl2-c{flex:1;min-width:0}
+.tl2-t{display:flex;align-items:baseline;gap:8px}
+.tl2-t b{font-size:13.5px;font-weight:800;color:var(--c)}
+.tl2-tm{margin-left:auto;font-size:11.5px;color:var(--faint);font-weight:600;font-variant-numeric:tabular-nums}
+.tl2-m{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--text-2);margin-top:3px}
+.tl2-r{margin-top:6px;background:var(--panel-2);border-radius:10px;padding:8px 10px;font-size:12px;color:var(--text-2);white-space:pre-line;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -1568,16 +1597,33 @@ main{padding:0 22px 60px 18px}
         <div class="dr-actions">${a.consoleUrl ? `<a class="ibtn primary" href="${esc(a.consoleUrl)}" target="_blank" rel="noopener">${icon('ext')}${a.store === 'apple' ? 'App Store Connect' : 'Play Console'}</a>` : ''}
           ${a.store === 'apple' ? `<a class="ibtn" href="https://appstoreconnect.apple.com/apps/${encodeURIComponent(appId)}/testflight/ios" target="_blank" rel="noopener">TestFlight</a>` : `<a class="ibtn" href="https://play.google.com/store/apps/details?id=${encodeURIComponent(a.bundleOrPackage)}" target="_blank" rel="noopener">Store listing</a>`}</div>
         <div class="sect">Current status</div>
-        <div class="chgrid">${chs.length ? chs.map((c) => `<div class="chbox"><div class="h">${esc(c.channelLabel)}</div>${badge(c)}
-          <div class="small">${esc(c.version || '—')}${c.liveVersion ? ` · live ${esc(c.liveVersion)}` : ''}${c.userFraction != null && c.category === 'live' ? ` · ${Math.round(c.userFraction * 100)}% rollout` : ''}</div>
-          <div class="tiny">${c.elapsedMs != null ? `<b style="color:${sla(c.elapsedMs).color}">${dur(c.elapsedMs)} in review</b> · ` : ''}changed ${ago(c.since)}</div>
-          ${c.submittedAt ? `<div class="tiny">Submitted ${fmt(c.submittedAt)}</div>` : ''}${c.reviewMs ? `<div class="tiny">Review took ${dur(c.reviewMs)}</div>` : ''}
-          ${c.ai ? aiBlock(c.ai) : c.reason ? `<div class="reason">${esc(c.reason)}</div>` : ''}${c.messageId ? `<button class="ibtn sm" data-email="${esc(c.messageId)}">${icon('mail')}View email</button>` : ''}</div>`).join('') : '<div class="chbox" style="grid-column:1/-1"><div class="small">No submissions recorded yet.</div></div>'}</div>
-        <div class="sect">History</div>
-        ${a.history.length ? `<ul class="tl">${a.history.map((h) => `<li style="--c:var(--c-${h.category});--b:var(--b-${h.category})"><span class="nd"></span>
-          <div class="w"><b>${esc(h.channelLabel)}</b> ${esc(h.version)} — ${esc(h.toLabel.replace(/^\S+\s/, ''))}</div>
-          <div class="d">${fmt(h.at)} · ${ago(h.at)}${h.fromLabel ? ` · from ${esc(h.fromLabel.replace(/^\S+\s/, ''))}` : ''}</div>
-          ${h.reason ? `<div class="r">${esc(h.reason)}</div>` : ''}</li>`).join('')}</ul>` : '<div class="small">No changes recorded yet.</div>'}
+        ${chs.length ? chs.map((c) => {
+          const tiles = [
+            ['Changed', ago(c.since)],
+            c.elapsedMs != null ? ['In review', `<span style="color:${sla(c.elapsedMs).color}">${dur(c.elapsedMs)}</span>`] : c.reviewMs ? ['Review took', dur(c.reviewMs)] : null,
+            c.submittedAt ? ['Submitted', fmt(c.submittedAt)] : null,
+            c.liveVersion ? ['Live version', esc(c.liveVersion)] : c.userFraction != null && c.category === 'live' ? ['Rollout', Math.round(c.userFraction * 100) + '%'] : null,
+          ].filter(Boolean);
+          return `<div class="stc" style="--c:var(--c-${c.category});--b:var(--b-${c.category})">
+            <div class="stc-h"><span class="chip">${storeIcon(a.store)}${esc(c.channelLabel)}</span><div class="grow"></div>${badge(c)}</div>
+            <div class="stc-v">${esc(c.version || '—')}</div>
+            <div class="stc-g">${tiles.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('')}</div>
+            ${c.ai ? aiBlock(c.ai) : c.reason ? `<div class="stc-r">${esc(c.reason)}</div>` : ''}
+            ${c.messageId ? `<button class="ibtn primary sm" data-email="${esc(c.messageId)}" style="margin-top:12px">${icon('mail')}View email</button>` : ''}
+          </div>`;
+        }).join('') : '<div class="stc"><div class="small">No submissions recorded yet.</div></div>'}
+        <div class="sect" style="margin-top:22px">History <span class="tiny" style="text-transform:none;letter-spacing:0;font-weight:500">· ${a.history.length} change${a.history.length === 1 ? '' : 's'}</span></div>
+        ${a.history.length ? (() => {
+          let last = '';
+          return `<ul class="tl2">${a.history.map((h) => {
+            const dk = dayLabel(h.at), head = dk !== last ? `<li class="tl2-day">${esc(dk)}</li>` : '';
+            last = dk;
+            return `${head}<li class="tl2-it" style="--c:var(--c-${h.category});--b:var(--b-${h.category})"><span class="tl2-nd"></span>
+              <div class="tl2-c"><div class="tl2-t"><b>${esc(h.toLabel.replace(/^\S+\s/, ''))}</b><span class="tl2-tm">${new Intl.DateTimeFormat('en-IN', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(h.at))}</span></div>
+              <div class="tl2-m"><span class="chip">${esc(h.channelLabel)}</span>${h.version ? `<span>${esc(h.version)}</span>` : ''}${h.fromLabel ? `<span class="tiny">from ${esc(h.fromLabel.replace(/^\S+\s/, ''))}</span>` : ''}</div>
+              ${h.reason ? `<div class="tl2-r">${esc(h.reason)}</div>` : ''}</div></li>`;
+          }).join('')}</ul>`;
+        })() : '<div class="small">No changes recorded yet.</div>'}
       </div>`;
     $('#drawer').classList.add('on'); $('#scrim').classList.add('on');
     $('#drawer').setAttribute('aria-hidden', 'false');
