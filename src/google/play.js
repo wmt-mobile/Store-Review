@@ -104,9 +104,8 @@ export function parseListingVersion(html) {
 }
 
 /**
- * The Play API looks the same before and after Google approves a release, and Google
- * often sends no approval email. Once the public store page shows the new version, the
- * release has been approved and published.
+ * Fallback only: once the public store page shows the new version, the release is published.
+ * Used when the release lifecycle endpoint below is unavailable.
  */
 export async function publicPlayVersion(packageName) {
   const ctrl = new AbortController();
@@ -124,6 +123,43 @@ export async function publicPlayVersion(packageName) {
   }
 }
 
+/**
+ * Review state of each release in a track (applications.tracks.releases.list).
+ * The edits/tracks API shows a release as "completed" from submission until it's live;
+ * only this endpoint tells in review / approved (ready to publish) / rejected / published.
+ * Not in the googleapis client yet, so it's called directly.
+ */
+export async function fetchReleaseStates(account, packageName, track) {
+  const { publisher } = apisFor(account);
+  const client = await publisher.context._options.auth.getClient();
+  const { data } = await client.request({
+    url: `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${encodeURIComponent(packageName)}/tracks/${encodeURIComponent(track)}/releases`,
+  });
+  return data.releases || [];
+}
+
+const LIFECYCLE = {
+  RELEASE_LIFECYCLE_STATE_IN_REVIEW: 'IN_REVIEW',
+  RELEASE_LIFECYCLE_STATE_APPROVED_NOT_PUBLISHED: 'READY_TO_PUBLISH',
+  RELEASE_LIFECYCLE_STATE_NOT_APPROVED: 'REJECTED',
+  RELEASE_LIFECYCLE_STATE_PUBLISHED: 'LIVE',
+};
+
+/** Pure: status for our current release from the lifecycle list, or null to keep the derived one. */
+export function lifecycleStatus(releases, next) {
+  const codes = String(next.extra?.versionCodes || '').split(',').filter(Boolean);
+  const rel = (releases || []).find(
+    (r) => r.releaseName === next.version || (codes.length && (r.activeArtifacts || []).some((a) => codes.includes(String(a.versionCode))))
+  );
+  const st = rel && LIFECYCLE[rel.releaseLifecycleState];
+  if (!st) return null;
+  if (st === 'LIVE') {
+    if (next.status === 'HALTED') return 'HALTED';
+    return next.extra?.releaseStatus === 'inProgress' ? 'ROLLOUT' : 'LIVE';
+  }
+  return st;
+}
+
 export async function pollPlayApp(account, tracker, packageName) {
   const key = appKeyOf('google', account.id, packageName);
   const tracks = await fetchTracks(account, packageName);
@@ -132,13 +168,20 @@ export async function pollPlayApp(account, tracker, packageName) {
     const prev = tracker.d.channels[key]?.[t.track];
     const next = deriveTrackState(t, prev, { initialized });
     if (!next) continue;
-    // Production release waiting on Google: published once the store page shows it.
-    const name = releaseVersionName(next.version);
-    const waiting = ['submitted', 'in_review', 'approved'].includes(describe('google', t.track, next.status).category);
-    if (t.track === 'production' && name && waiting) {
-      const onStore = await publicPlayVersion(packageName);
-      next.extra.storeVersion = onStore;
-      if (onStore === name) next.status = next.extra.releaseStatus === 'inProgress' ? 'ROLLOUT' : 'LIVE';
+    if (t.track === 'production' && next.status !== 'DRAFT') {
+      let releases = null;
+      try {
+        releases = await fetchReleaseStates(account, packageName, t.track);
+      } catch (e) {
+        console.warn(`[play] release states for ${packageName}:`, e.message);
+      }
+      const st = releases && lifecycleStatus(releases, next);
+      if (st) next.status = st;
+      else if (!releases && ['submitted', 'in_review', 'approved'].includes(describe('google', t.track, next.status).category)) {
+        const name = releaseVersionName(next.version);
+        const onStore = name ? await publicPlayVersion(packageName) : null;
+        if (onStore === name) next.status = next.extra.releaseStatus === 'inProgress' ? 'ROLLOUT' : 'LIVE';
+      }
     }
     await tracker.update(key, t.track, next);
   }

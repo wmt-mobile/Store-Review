@@ -303,3 +303,19 @@ test('play: public store page version marks a release live', async () => {
   assert.equal(parseListingVersion('x,[[["1.3.78"]],[[[35,"15"]]]'), '1.3.78');
   assert.equal(parseListingVersion('<html>Varies with device</html>'), null);
 });
+
+test('play: release lifecycle state drives the production status', async () => {
+  const { lifecycleStatus } = await import('../src/google/play.js');
+  const next = { version: '193 (1.3.80)', status: 'SENT_FOR_REVIEW', extra: { versionCodes: '193', releaseStatus: 'completed' } };
+  const rel = (state) => [
+    { releaseName: '193 (1.3.80)', activeArtifacts: [{ versionCode: 193 }], releaseLifecycleState: `RELEASE_LIFECYCLE_STATE_${state}` },
+    { releaseName: '187 (1.3.78)', activeArtifacts: [{ versionCode: 187 }], releaseLifecycleState: 'RELEASE_LIFECYCLE_STATE_PUBLISHED' },
+  ];
+  assert.equal(lifecycleStatus(rel('IN_REVIEW'), next), 'IN_REVIEW');
+  assert.equal(lifecycleStatus(rel('APPROVED_NOT_PUBLISHED'), next), 'READY_TO_PUBLISH');
+  assert.equal(lifecycleStatus(rel('NOT_APPROVED'), next), 'REJECTED');
+  assert.equal(lifecycleStatus(rel('PUBLISHED'), next), 'LIVE');
+  assert.equal(lifecycleStatus(rel('PUBLISHED'), { ...next, extra: { ...next.extra, releaseStatus: 'inProgress' } }), 'ROLLOUT');
+  assert.equal(lifecycleStatus(rel('DRAFT'), next), null);
+  assert.equal(lifecycleStatus([], next), null);
+});

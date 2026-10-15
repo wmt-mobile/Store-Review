@@ -42,7 +42,7 @@ export const PLAY = {
   SENT_FOR_REVIEW: S('📤', 'Release sent to Google', 'submitted'),
   IN_REVIEW: S('🔍', 'In review', 'in_review'),
   APPROVED: S('✅', 'Approved', 'approved'),
-  READY_TO_PUBLISH: S('✅', 'Ready to publish (managed publishing)', 'approved'),
+  READY_TO_PUBLISH: S('✅', 'Approved · ready to publish', 'approved'),
   LIVE: S('🚀', 'Live', 'live'),
   ROLLOUT: S('📈', 'Staged rollout', 'live'),
   HALTED: S('⏸️', 'Rollout halted', 'action'),
