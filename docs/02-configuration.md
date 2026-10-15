@@ -25,7 +25,7 @@ When both exist, the **Setup page value wins over the environment default**. The
 | `AUTH_ALLOWED_EMAILS` | `mobile@webmobtech.com,other@webmobtech.com` | Who may sign in. Empty means any confirmed Supabase Auth user can (not recommended) |
 | `GOOGLE_CHAT_SPACE` | `spaces/AAQA3HMSggo`, or the space link | Fixed Chat space. Locks the space in the UI |
 | `CRON_SECRET` | 32+ random characters | Bearer token for `/api/cron/tick`. Must match the Supabase Vault secret `review_radar_cron_secret` |
-| `PUBLIC_BASE_URL` | `https://wmt-storereview.vercel.app` | Builds the Google OAuth redirect URLs |
+| `PUBLIC_BASE_URL` | `https://wmt-storereview.vercel.app` | Main domain. Google sign-ins (Gmail/Chat) always return here, so use this domain when reconnecting them. `store-review-eosin.vercel.app` serves the same app |
 | `TZ_DISPLAY` | `Asia/Kolkata` | Time zone used in messages and the dashboard |
 | `STATUS_TOKEN` | random | Protects `GET /status?token=…` (raw JSON status) |
 

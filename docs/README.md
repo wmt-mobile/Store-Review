@@ -2,7 +2,7 @@
 
 Review Radar watches the **App Store, TestFlight and Google Play** review status of WebMob's apps. It shows them in a web dashboard and posts every **release** change (App Store + Google Play production) to Google Chat as **🤖 app_review_bot**.
 
-| Live app | https://wmt-storereview.vercel.app |
+| Live app | https://wmt-storereview.vercel.app (main) · https://store-review-eosin.vercel.app (also works, same app) |
 |---|---|
 | Code | https://github.com/wmt-mobile/Store-Review (`main` auto-deploys) |
 | Hosting | Vercel, project `store-review`, team `mobile-webmobtechcs-projects` (signed in as mobile@webmobtech.com) |
