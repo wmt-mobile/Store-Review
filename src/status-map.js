@@ -77,3 +77,7 @@ export const channelLabel = (ch) => CHANNEL_LABELS[ch] || (ch ? `Track: ${ch}` :
 export const isPending = (category) => category === 'submitted' || category === 'in_review';
 /** Statuses that end a review cycle. */
 export const isTerminal = (category) => ['approved', 'live', 'rejected', 'removed'].includes(category);
+
+// Public release channels: the only ones shown on the dashboard and posted to Chat.
+// TestFlight and Play testing tracks (beta = open, alpha = closed, internal) are ignored.
+export const RELEASE_CHANNELS = new Set(['appstore', 'production']);

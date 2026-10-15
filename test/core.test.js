@@ -131,6 +131,7 @@ test('dashboard groups pending / attention / summary', async () => {
   assert.equal(m.summary.stuck, 1);
   assert.equal(m.summary.attention, 1);
   assert.equal(m.summary.live, 0, 'beta track is not "live in store"');
+  assert.deepEqual(Object.keys(m.apps.find((x) => x.name === 'B').channels), ['production'], 'testing tracks hidden');
   assert.equal(m.pending[0].appName, 'A');
   assert.equal(m.attention[0].reason, 'Policy');
   assert.equal(m.accounts.find((x) => x.id === 'g1').appCount, 2);

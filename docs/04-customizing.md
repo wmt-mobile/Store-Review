@@ -62,7 +62,7 @@ Change the emoji or label here and it updates everywhere: Chat, the dashboard an
 
 ## Which changes get posted
 The rules are in **`Tracker.update()`** in `src/tracker.js`:
-- **Only release channels post:** the App Store and Google Play **production** (`NOTIFY_CHANNELS`). TestFlight and the Play testing tracks (open `beta`, closed `alpha`, `internal`) are tracked on the dashboard but never posted. To post them again, add their names to `NOTIFY_CHANNELS`.
+- **Only release channels are shown and posted:** the App Store and Google Play **production** (`RELEASE_CHANNELS` in `src/status-map.js`). TestFlight and the Play testing tracks (open `beta`, closed `alpha`, `internal`) are hidden from the dashboard and never posted. To bring them back, add their names to `RELEASE_CHANNELS`.
 - Drafts and internal-only states ("Prepare for submission", "Ready for beta submission", "Internal testing") are never posted (`SILENT_CATEGORIES`).
 - A change to a **new status** or **new version** is posted.
 - The first time a channel is seen, it is posted, **except** for a brand-new app that is simply already live.

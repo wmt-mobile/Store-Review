@@ -726,7 +726,6 @@ table.t tbody tr:hover td{background:var(--panel-2)}
         <div class="stat"><div class="ringwrap"><div class="ring" style="--p:${Math.round((st.approvalRate30 ?? 0) * 100)}"><span>${st.approvalRate30 == null ? '—' : Math.round(st.approvalRate30 * 100) + '%'}</span></div>
           <div><div class="l">Approval rate · 30 days</div><div class="v" style="font-size:14.5px">${st.approved30 ?? 0} approved · ${st.rejected30 ?? 0} rejected</div></div></div></div>
         <div class="stat"><div class="l">${storeIcon('apple')} App Store review</div><div class="v">${md.appstore ? dur(md.appstore) : '—'}</div><div class="s">median of ${st.samples?.appstore || 0}</div></div>
-        <div class="stat"><div class="l">${storeIcon('apple')} TestFlight review</div><div class="v">${md.testflight ? dur(md.testflight) : '—'}</div><div class="s">median of ${st.samples?.testflight || 0}</div></div>
         <div class="stat"><div class="l">${storeIcon('google')} Google Play review</div><div class="v">${md.play ? dur(md.play) : '—'}</div><div class="s">median of ${st.samples?.play || 0}</div></div>
         <div class="stat"><div class="l">${icon('activity', 'xs')} Submitted · 7 days</div><div class="v">${st.submitted7 ?? 0}</div><div class="s">${stuck ? `<span style="color:var(--c-rejected)">${stuck} over SLA</span>` : `SLA ${M.stuckHours}h · on track`}</div></div>
       </div>
@@ -779,7 +778,7 @@ table.t tbody tr:hover td{background:var(--panel-2)}
       </div></div>`).join('')}</div>`;
   }
 
-  const COLS = { apple: ['appstore', 'testflight'], google: ['production', 'beta', 'alpha', 'internal'] };
+  const COLS = { apple: ['appstore'], google: ['production'] };
   const COLN = { appstore: 'App Store', testflight: 'TestFlight', production: 'Production', beta: 'Open testing', alpha: 'Closed testing', internal: 'Internal' };
 
   function vApps() {
@@ -789,7 +788,7 @@ table.t tbody tr:hover td{background:var(--panel-2)}
       <div class="seg"><button data-l="grid" class="${S.layout === 'grid' ? 'on' : ''}">${icon('apps', 'xs')}Cards</button><button data-l="table" class="${S.layout === 'table' ? 'on' : ''}">${icon('list', 'xs')}Table</button></div></div>`;
     if (!groups.length) return head + `<div class="card">${empty('📭', 'No accounts', 'Add accounts in config/apps.json.')}</div>`;
     return head + `<div class="groups">${groups.map(({ acc, apps: list }) => {
-      const cols = [...COLS[acc.store], ...new Set(list.flatMap((a) => Object.keys(a.channels)).filter((c) => !COLS[acc.store].includes(c)))];
+      const cols = COLS[acc.store];
       const body = !list.length
         ? `<div class="card">${empty(acc.error ? '⚠️' : '📭', acc.error ? 'Account not reachable' : 'No apps yet', esc(acc.error || 'Apps appear after the next discovery run.'))}</div>`
         : S.layout === 'table'

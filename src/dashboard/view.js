@@ -1,9 +1,10 @@
 // Pure: builds the dashboard model from store data.
-import { describe, channelLabel, isPending, CATEGORY_ORDER } from '../status-map.js';
+import { describe, channelLabel, isPending, CATEGORY_ORDER, RELEASE_CHANNELS } from '../status-map.js';
 import { primaryConsoleUrl, consoleLinks } from '../links.js';
 import { displayVersion } from '../util.js';
 
-const CH_ORDER = ['appstore', 'testflight', 'production', 'beta', 'alpha', 'internal'];
+const CH_ORDER = ['appstore', 'production'];
+const isRelease = (ch) => RELEASE_CHANNELS.has(ch);
 
 export function buildDashboard(data, accounts, { now = Date.now(), stuckHours = 48 } = {}) {
   const accById = Object.fromEntries(accounts.map((a) => [a.id, a]));
@@ -17,7 +18,7 @@ export function buildDashboard(data, accounts, { now = Date.now(), stuckHours = 
     const account = accById[app.accountId];
     const chState = data.channels?.[app.key] || {};
     const channels = {};
-    const order = Object.keys(chState).sort((a, b) => (CH_ORDER.indexOf(a) + 1 || 99) - (CH_ORDER.indexOf(b) + 1 || 99));
+    const order = Object.keys(chState).filter(isRelease).sort((a, b) => (CH_ORDER.indexOf(a) + 1 || 99) - (CH_ORDER.indexOf(b) + 1 || 99));
     let best = 'none';
     for (const ch of order) {
       const s = chState[ch];
@@ -70,7 +71,7 @@ export function buildDashboard(data, accounts, { now = Date.now(), stuckHours = 
       consoleUrl: primaryConsoleUrl(app, account),
       topCategory: best,
       channels,
-      history: (data.history?.[app.key] || []).slice(0, 20).map((h) => {
+      history: (data.history?.[app.key] || []).filter((h) => isRelease(h.channel)).slice(0, 20).map((h) => {
         const to = describe(app.store, h.channel, h.to);
         const from = h.from ? describe(app.store, h.channel, h.from) : null;
         return { ...h, channelLabel: channelLabel(h.channel), toLabel: `${to.emoji} ${to.label}`, fromLabel: from ? `${from.emoji} ${from.label}` : null, category: to.category };
@@ -113,7 +114,7 @@ function buildActivity(data, accById, now, limit = 120) {
   for (const app of Object.values(data.apps || {})) {
     if (app.hidden) continue;
     for (const h of data.history?.[app.key] || []) {
-      if (now - h.at > 30 * 86_400_000) continue;
+      if (now - h.at > 30 * 86_400_000 || !isRelease(h.channel)) continue;
       const to = describe(app.store, h.channel, h.to);
       const from = h.from ? describe(app.store, h.channel, h.from) : null;
       out.push({
@@ -154,7 +155,7 @@ function buildStats(data, now) {
   let submitted7 = 0;
   for (const app of Object.values(data.apps || {})) {
     if (app.hidden) continue;
-    const hist = [...(data.history?.[app.key] || [])].sort((a, b) => a.at - b.at);
+    const hist = (data.history?.[app.key] || []).filter((h) => isRelease(h.channel)).sort((a, b) => a.at - b.at);
     const start = {};
     for (const h of hist) {
       const cat = describe(app.store, h.channel, h.to).category;
