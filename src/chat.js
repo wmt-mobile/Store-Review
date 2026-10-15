@@ -153,7 +153,6 @@ export function statusCard({ app, account, channel, version, from, to, at, submi
     kv('Status', from ? `${from.emoji} ${from.label}  →  <b>${to.emoji} ${to.label}</b>` : `<b>${to.emoji} ${to.label}</b>`),
     kv('Version', version || '—'),
   ];
-  if (submittedAt) widgets.push(kv('Since submission', fmtDuration(at - submittedAt)));
   widgets.push(kv('Account', account?.name || app.accountId));
   widgets.push(kv('Time', fmtTime(at)));
   if (reason) widgets.push({ textParagraph: { text: `<b>Reason</b><br>${escapeHtml(reason).slice(0, 3500)}` } });
@@ -163,7 +162,6 @@ export function statusCard({ app, account, channel, version, from, to, at, submi
   if (buttons.length) sections.push({ widgets: [{ buttonList: { buttons } }] });
 
   const store = app.store === 'google' ? `Google Play · ${channelLabel(channel)}` : channelLabel(channel);
-  const done = ['approved', 'live', 'rejected', 'removed'].includes(to.category);
   const lines = [
     `${to.emoji}  *${to.label.toUpperCase()}*`,
     `*${clean(app.name)}*`,
@@ -171,7 +169,6 @@ export function statusCard({ app, account, channel, version, from, to, at, submi
     `📱  ${store}   ·   v${clean(version || '—')}`,
   ];
   if (from && from.label !== to.label) lines.push(`🔄  ${from.label}  →  *${to.label}*`);
-  if (submittedAt) lines.push(`⏱️  ${done ? 'Review took' : 'Waiting for'} *${fmtDuration(at - submittedAt)}*`);
   if (reason) lines.push('', '📝  *Reason*', box(reason));
   if (NEXT_STEP[to.category]) lines.push('', NEXT_STEP[to.category]);
   lines.push('', `🏢  ${clean(account?.name || app.accountId)}`, `🕒  ${fmtTime(at)}`);
