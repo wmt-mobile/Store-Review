@@ -111,7 +111,7 @@ test('tracker: newly seen live app is not announced, new submission is', async (
   const k1 = tracker.registerApp({ store: 'apple', accountId: 'a1', appId: '9' });
   await tracker.update(k1, 'appstore', { version: '1', status: 'READY_FOR_DISTRIBUTION' });
   assert.equal(sent.length, 0);
-  await tracker.update(k1, 'testflight', { version: '1 (2)', status: 'WAITING_FOR_REVIEW' });
+  await tracker.update(k1, 'appstore', { version: '2', status: 'WAITING_FOR_REVIEW' });
   assert.equal(sent.length, 1);
 });
 
@@ -217,14 +217,25 @@ test('tracker keeps admin rename / mute / hide across re-discovery', async () =>
   assert.equal(sent.length, 0, 'muted apps never post to Chat');
 });
 
-test('real-time: any new status after the quiet first sync is posted', async () => {
+test('only release channels post: App Store + Play production; TestFlight, testing tracks and drafts stay silent', async () => {
   const { tracker, sent } = mkTracker();
   tracker.markInitialized('a1');
-  const k = tracker.registerApp({ store: 'apple', accountId: 'a1', appId: '42', name: 'New' });
-  await tracker.update(k, 'appstore', { version: '1.0', status: 'PREPARE_FOR_SUBMISSION' });
-  await tracker.update(k, 'testflight', { version: '1.0 (1)', status: 'APPROVED' });
-  await tracker.update(k, 'testflight', { version: '1.0 (2)', status: 'PROCESSING' });
-  assert.equal(sent.length, 3, 'drafts, beta approvals and new builds are all posted');
+  tracker.markInitialized('g1');
+  const ios = tracker.registerApp({ store: 'apple', accountId: 'a1', appId: '42', name: 'New' });
+  await tracker.update(ios, 'appstore', { version: '1.0', status: 'PREPARE_FOR_SUBMISSION' }); // draft → silent
+  await tracker.update(ios, 'testflight', { version: '1.0 (1)', status: 'READY_FOR_BETA_SUBMISSION' }); // silent
+  await tracker.update(ios, 'testflight', { version: '1.0 (1)', status: 'APPROVED' }); // silent
+  await tracker.update(ios, 'appstore', { version: '1.0', status: 'WAITING_FOR_REVIEW' }); // posted
+  await tracker.update(ios, 'appstore', { version: '1.0', status: 'IN_REVIEW' }); // posted
+  const play = tracker.registerApp({ store: 'google', accountId: 'g1', appId: 'com.x', name: 'X' });
+  await tracker.update(play, 'internal', { version: '2 (20)', status: 'SENT_FOR_REVIEW' }); // silent
+  await tracker.update(play, 'alpha', { version: '2 (20)', status: 'SENT_FOR_REVIEW' }); // silent
+  await tracker.update(play, 'beta', { version: '2 (20)', status: 'APPROVED' }); // silent
+  await tracker.update(play, 'production', { version: '2 (20)', status: 'SENT_FOR_REVIEW' }); // posted
+  await tracker.update(play, 'production', { version: '2 (20)', status: 'LIVE' }); // posted
+  assert.equal(sent.length, 4);
+  assert.ok(tracker.d.channels[ios].testflight, 'TestFlight is still tracked for the dashboard');
+  assert.ok(tracker.d.channels[play].alpha, 'testing tracks are still tracked for the dashboard');
 });
 
 test('unclassified Play emails are forwarded, but not on the first read', async () => {

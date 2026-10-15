@@ -5,6 +5,12 @@ import { statusCard, alertCard, storeMessageCard, safeSend } from './chat.js';
 import { consoleLinks } from './links.js';
 import { appKeyOf, errText } from './util.js';
 
+// Only public release channels post to Chat: App Store + Google Play production.
+// TestFlight and Play testing tracks (beta = open, alpha = closed, internal) are tracked on the dashboard only.
+export const NOTIFY_CHANNELS = new Set(['appstore', 'production']);
+// Drafts / internal-only states aren't store updates.
+const SILENT_CATEGORIES = new Set(['draft', 'testing', 'none']);
+
 const ALERT_EVERY_MS = 6 * 3_600_000;
 const HISTORY_MAX = 50;
 
@@ -137,6 +143,7 @@ export class Tracker {
     }
     if (notify && from && from.category === to.category && from.label === to.label && !versionChanged) notify = false;
     if (app.hidden || app.muted) notify = false;
+    if (!NOTIFY_CHANNELS.has(channel) || SILENT_CATEGORIES.has(to.category)) notify = false;
 
     this.store.save();
     this.onEvent('status', { app, channel, version, from: prev?.status || null, to: status, reason: reason || null, notify });

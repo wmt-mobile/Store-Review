@@ -1,6 +1,6 @@
 # Review Radar: documentation
 
-Review Radar watches the **App Store, TestFlight and Google Play** review status of WebMob's apps. It shows them in a web dashboard and posts every change to Google Chat as **🤖 app_review_bot**.
+Review Radar watches the **App Store, TestFlight and Google Play** review status of WebMob's apps. It shows them in a web dashboard and posts every **release** change (App Store + Google Play production) to Google Chat as **🤖 app_review_bot**.
 
 | Live app | https://store-review-eosin.vercel.app |
 |---|---|
