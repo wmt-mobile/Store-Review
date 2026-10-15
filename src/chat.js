@@ -147,6 +147,8 @@ const NEXT_STEP = {
   testing: '🧪 Available to internal testers',
 };
 
+const CHAT_LIMIT = 4000;
+
 const kv = (label, text) => ({ decoratedText: { topLabel: label, text: String(text), wrapText: true } });
 
 /** Card for one status change. */
@@ -158,6 +160,8 @@ export function statusCard({ app, account, channel, version, extra, from, to, at
   ];
   widgets.push(kv('Account', account?.name || app.accountId));
   widgets.push(kv('Time', fmtTime(at)));
+  const aiSum = ['rejected', 'action', 'removed'].includes(to.category) ? extra?.ai : null;
+  if (aiSum) widgets.push({ textParagraph: { text: `<b>${escapeHtml(aiSum.title || 'Summary')}</b><br>${[...(aiSum.issues || []), ...(aiSum.fixes || []).map((f) => '→ ' + f)].map(escapeHtml).join('<br>')}` } });
   if (reason) widgets.push({ textParagraph: { text: `<b>Reason</b><br>${escapeHtml(reason).slice(0, 3500)}` } });
 
   const buttons = links.filter((l) => l?.url).map((l) => ({ text: l.text, onClick: { openLink: { url: l.url } } }));
@@ -175,11 +179,27 @@ export function statusCard({ app, account, channel, version, extra, from, to, at
   ];
   if (from && from.label !== to.label) lines.push(`🔄  *Status:*  ${from.label}  →  *${to.label}*`);
   else lines.push(`🔄  *Status:*  *${to.label}*`);
-  if (reason) lines.push('', '📝  *Reason*', box(reason));
-  if (NEXT_STEP[to.category]) lines.push('', NEXT_STEP[to.category]);
-  lines.push('', `🏢  ${clean(account?.name || app.accountId)}`, `🕒  ${fmtTime(at)}`);
+  const bad = ['rejected', 'action', 'removed'].includes(to.category);
+  const ai = bad ? extra?.ai : null;
+  const mailText = bad ? extra?.mailText : null;
+  if (ai) {
+    if (ai.title) lines.push('', `🚫  *${clean(ai.title)}*`);
+    if (ai.issues?.length) lines.push('', "🔎  *What's wrong*", ...ai.issues.map((x) => `•  ${clean(x)}`));
+    if (ai.fixes?.length) lines.push('', '🛠️  *How to fix*', ...ai.fixes.map((x) => `•  ${clean(x)}`));
+    if (ai.deadline) lines.push('', `⏰  *Deadline:*  ${clean(ai.deadline)}`);
+  } else if (reason && !mailText) lines.push('', '📝  *Reason*', box(reason));
+  const tail = [];
+  if (NEXT_STEP[to.category]) tail.push('', NEXT_STEP[to.category]);
+  tail.push('', `🏢  ${clean(account?.name || app.accountId)}`, `🕒  ${fmtTime(at)}`);
   const lk = links.filter((l) => l?.url).map((l) => `<${l.url}|${l.text} ↗>`);
-  if (lk.length) lines.push('', `🔗  ${lk.join('   ·   ')}`);
+  if (lk.length) tail.push('', `🔗  ${lk.join('   ·   ')}`);
+  if (mailText) {
+    // Full email, trimmed to what fits in one Chat message (4096 chars).
+    const head = ['', `📧  *Full email*${extra.mailSubject ? `  —  ${clean(extra.mailSubject)}` : ''}`];
+    const room = CHAT_LIMIT - [...lines, ...head, ...tail].join('\n').length - 40;
+    if (room > 200) lines.push(...head, box(mailText.length > room ? mailText.slice(0, room).trimEnd() + '\n… (open the email for the rest)' : mailText, room + 60));
+  }
+  lines.push(...tail);
   return {
     text: `${to.emoji} ${app.name} ${ver} – ${to.label}`,
     chatText: lines.join('\n'),

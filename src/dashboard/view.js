@@ -41,6 +41,9 @@ export function buildDashboard(data, accounts, { now = Date.now(), stuckHours = 
         liveVersion: s.extra?.liveVersion || null,
         userFraction: s.extra?.userFraction ?? null,
         emailUrl: s.extra?.emailUrl || null,
+        ...(['rejected', 'action', 'removed'].includes(d.category)
+          ? { ai: s.extra?.ai || null, messageId: s.extra?.messageId || null, mailSubject: s.extra?.mailSubject || null }
+          : {}),
         url: consoleLinks(app, account, ch)[0]?.url,
       };
       channels[ch] = c;

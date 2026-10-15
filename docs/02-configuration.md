@@ -37,6 +37,8 @@ When both exist, the **Setup page value wins over the environment default**. The
 | `STUCK_HOURS` | 48 | Default "stuck in review" limit (Setup overrides it) |
 | `SILENT_FIRST_RUN` | true | Record the first statuses of a new account without posting them |
 | `GMAIL_QUERY` | Play Console senders, last 14 days | Gmail search for Play emails (Setup → Search filter overrides it) |
+| `GROQ_API_KEY` | – | Groq API key for the AI rejection summary (title, what's wrong, how to fix, deadline). Without it, rejections post the full email only. **Secret** |
+| `GROQ_MODEL` | `openai/gpt-oss-120b` | Groq model used for the summary |
 | `GOOGLE_CHAT_WEBHOOK_URL` | – | Legacy webhook delivery (blocked in the WebMob Workspace) |
 | `DIGEST_ENABLED`, `DIGEST_TIME` | off | Daily summary. **Turned off on purpose:** updates are real-time |
 

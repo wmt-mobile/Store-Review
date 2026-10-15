@@ -269,3 +269,25 @@ test('versions read as "name (build)" in Chat', async () => {
   assert.match(c.chatText, /^📤 {2}\*SENT TO GOOGLE\*\n\n\*Telfon\*\n\n/);
   assert.match(c.chatText, /Version:\*  1\.3\.80 \(193\)/);
 });
+
+test('AI rejection summary is parsed into title / issues / fixes / deadline', async () => {
+  const { parseSummary } = await import('../src/ai.js');
+  const s = parseSummary('TITLE: READ_CALL_LOG permission violation\nISSUE:\n- Requests READ_CALL_LOG without need\nFIX:\n- Remove the permission\n- Or submit the declaration form\nDEADLINE: 30 November 2026');
+  assert.equal(s.title, 'READ_CALL_LOG permission violation');
+  assert.deepEqual(s.issues, ['Requests READ_CALL_LOG without need']);
+  assert.equal(s.fixes.length, 2);
+  assert.equal(s.deadline, '30 November 2026');
+  assert.equal(parseSummary('TITLE: X\nDEADLINE: None').deadline, '');
+  assert.equal(parseSummary(''), null);
+});
+
+test('rejection Chat message carries the AI summary and the full email', async () => {
+  const { statusCard } = await import('../src/chat.js');
+  const { describe } = await import('../src/status-map.js');
+  const c = statusCard({ app: { name: 'Telfon', store: 'google', accountId: 'a' }, channel: 'production', version: '193 (1.3.80)', at: Date.now(),
+    from: describe('google', 'production', 'SENT_FOR_REVIEW'), to: describe('google', 'production', 'REJECTED'),
+    extra: { ai: { title: 'Permission issue', issues: ['A'], fixes: ['B'], deadline: '' }, mailText: 'x'.repeat(9000), mailSubject: 'Rejected' } });
+  assert.match(c.chatText, /🚫 {2}\*Permission issue\*/);
+  assert.match(c.chatText, /📧 {2}\*Full email\*/);
+  assert.ok(c.chatText.length <= 4096, `fits one Chat message (${c.chatText.length})`);
+});

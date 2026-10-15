@@ -128,3 +128,13 @@ Colours are CSS variables at the top of each HTML file, with separate light and 
 - the Chat text conversion
 
 Run them with `bun run test`. Add a test for every behaviour you change.
+
+## Rejection emails (AI summary + full email)
+When a Play Console email is a **rejection, removal or policy action**, `src/google/gmail.js`:
+1. Takes the whole email text and sends it to Groq (`src/ai.js`, model `GROQ_MODEL`) with a fixed prompt. The reply has a fixed format: `TITLE`, `ISSUE`, `FIX`, `DEADLINE`.
+2. Stores the summary, the email subject, the text (up to 8,000 characters) and the Gmail message id in `channel_states.extra`.
+3. The Chat message (`statusCard()` in `src/chat.js`) shows 🚫 title, 🔎 What's wrong, 🛠️ How to fix, ⏰ Deadline, then 📧 the full email in a box, trimmed so the whole message fits Chat's 4,096-character limit.
+
+On the dashboard, **Needs attention** cards show the summary, and **View email** opens the original email as it looks in Gmail. It's served by `GET /api/email/:id`, which only returns emails the bot has linked to an app, rendered in a sandboxed frame with scripts blocked.
+
+To change the wording or the sections, edit `PROMPT` and `parseSummary()` in `src/ai.js`. If Groq fails or there's no key, the message still posts, with the full email but no summary.

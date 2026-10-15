@@ -1,7 +1,8 @@
 // Reads Play Console emails from the shared mailbox.
 import { google } from 'googleapis';
 import { config } from '../config.js';
-import { parsePlayEmail } from './gmail-parser.js';
+import { parsePlayEmail, htmlToText } from './gmail-parser.js';
+import { summarizeRejection } from '../ai.js';
 import { describe, isPending } from '../status-map.js';
 
 let gmailApi = null;
@@ -25,6 +26,41 @@ function gmail() {
 
 function decode(data) {
   return Buffer.from(String(data).replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
+}
+
+/** Readable text of the whole email (plain part, else the HTML part converted). */
+function textOf(payload) {
+  let plain = '';
+  let html = '';
+  const walk = (p) => {
+    if (!p) return;
+    if (p.mimeType === 'text/plain' && p.body?.data) plain += decode(p.body.data);
+    else if (p.mimeType === 'text/html' && p.body?.data) html += decode(p.body.data);
+    (p.parts || []).forEach(walk);
+  };
+  walk(payload);
+  return (plain.trim() ? plain : htmlToText(html)).replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+/** Raw HTML of an email (for the dashboard's "View email"). */
+export function htmlOf(payload) {
+  let html = '';
+  let plain = '';
+  const walk = (p) => {
+    if (!p) return;
+    if (p.mimeType === 'text/html' && p.body?.data) html += decode(p.body.data);
+    else if (p.mimeType === 'text/plain' && p.body?.data) plain += decode(p.body.data);
+    (p.parts || []).forEach(walk);
+  };
+  walk(payload);
+  return { html, plain };
+}
+
+/** Full message for the dashboard. */
+export async function getEmail(id) {
+  const { data: msg } = await gmail().users.messages.get({ userId: 'me', id, format: 'full' });
+  const { html, plain } = htmlOf(msg.payload);
+  return { id, subject: header(msg, 'subject'), from: header(msg, 'from'), to: header(msg, 'to'), at: Number(msg.internalDate) || null, html, text: plain || htmlToText(html) };
 }
 
 function bodyOf(payload) {
@@ -84,6 +120,13 @@ export async function pollGmail(tracker) {
       continue;
     }
     const chans = tracker.d.channels[app.key] || {};
+    const subject = header(msg, 'subject');
+    let mail = {};
+    if (['REJECTED', 'REMOVED', 'POLICY_ACTION'].includes(parsed.status)) {
+      const text = textOf(msg.payload);
+      const ai = await summarizeRejection({ subject, text, appName: app.name, store: 'google' });
+      mail = { messageId: id, mailSubject: subject, mailText: text.slice(0, 8000), ai: ai || null };
+    }
     const track =
       parsed.track ||
       Object.entries(chans).find(([ch, s]) => isPending(describe('google', ch, s.status).category))?.[0] ||
@@ -94,7 +137,7 @@ export async function pollGmail(tracker) {
       reason: parsed.reason,
       at,
       eventId,
-      extra: { ...(chans[track]?.extra || {}), emailUrl },
+      extra: { ...(chans[track]?.extra || {}), emailUrl, ...mail },
     });
     processed++;
   }

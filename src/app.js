@@ -14,11 +14,11 @@ import { discoverAccount } from './discovery.js';
 import { pollAppleAccount, pollAppleApp } from './apple/poller.js';
 import { appleWebhookHandler } from './apple/webhook.js';
 import { pollPlayAccount } from './google/play.js';
-import { pollGmail } from './google/gmail.js';
+import { pollGmail, getEmail } from './google/gmail.js';
 import { buildDashboard } from './dashboard/view.js';
 import { buildDigest, digestDue } from './digest.js';
 import { safeSend } from './chat.js';
-import { loadDemoData } from './demo.js';
+import { loadDemoData, DEMO_EMAIL } from './demo.js';
 import { waitUntil } from '@vercel/functions';
 import { db } from './supabase.js';
 
@@ -269,6 +269,20 @@ app.get('/api/dashboard', requireDashboard, (req, res) => {
     user: req.user?.email || null,
     gmail: { enabled: MODE === 'demo' || gmailEnabled(), lastPollAt: store.data.accounts.gmail?.lastPollAt || null, error: store.data.accounts.gmail?.error || null },
   });
+});
+// Full Play Console email behind a status (dashboard → "View email"). Only emails the bot linked to an app.
+app.get('/api/email/:id', requireDashboard, async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const id = String(req.params.id || '');
+  if (MODE === 'demo') return id === DEMO_EMAIL.id ? res.json(DEMO_EMAIL) : res.status(404).json({ error: 'not found' });
+  const linked = Object.values(store.data.channels || {}).some((chs) => Object.values(chs || {}).some((c) => c?.extra?.messageId === id));
+  if (!/^[0-9a-f]{8,32}$/i.test(id) || !linked) return res.status(404).json({ error: 'not found' });
+  if (!gmailEnabled()) return res.status(409).json({ error: 'Gmail is not connected' });
+  try {
+    res.json(await getEmail(id));
+  } catch (e) {
+    res.status(502).json({ error: e.message });
+  }
 });
 app.post('/api/refresh', requireDashboard, (_req, res) => {
   if (MODE === 'demo') return res.json({ ok: true, demo: true });

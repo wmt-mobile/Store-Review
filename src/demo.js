@@ -83,6 +83,48 @@ export function loadDemoData(store) {
     }
     d.history[key].sort((a, b) => b.at - a.at);
   }
+  d.channels['google:wmt-play:com.wmt.localnest'].production.extra = {
+    messageId: DEMO_EMAIL.id,
+    mailSubject: DEMO_EMAIL.subject,
+    mailText: DEMO_EMAIL.text,
+    emailUrl: 'https://mail.google.com/',
+    ai: {
+      title: "Data safety form doesn't match collected data",
+      issues: ['Data safety form omits Location data the app collects', 'Detected in version code 182 (1.8.2)'],
+      fixes: ['Update Data safety in Play Console › App content to declare Location', 'Or remove location collection, then resubmit 1.8.2'],
+      deadline: '1 Nov 2026',
+    },
+  };
   d.accounts.gmail = { lastPollAt: now - 90_000 };
   d.initialized = Object.fromEntries(ACCOUNTS.map((a) => [a.id, now]));
 }
+
+const DEMO_TEXT = `Hi Developers at WebMob Technologies,
+
+We reviewed LocalNest, with package name com.wmt.localnest, and found that your app is not compliant with Google Play Policies.
+
+Publishing status
+Your app update with version code 182 (1.8.2) has been rejected.
+
+Issue found: Violation of Data safety policy
+Your Data safety form does not accurately reflect the data collected by your app (Location).
+
+Action required
+Update your Data safety form in Play Console > Policy > App content, or remove the data collection, then resubmit.
+
+If you don't fix this by 1 November 2026, your app may be removed from Google Play.
+
+The Google Play Team`;
+
+export const DEMO_EMAIL = {
+  id: 'demo0localnest01',
+  subject: 'Action required: Your app update for LocalNest was rejected',
+  from: 'Google Play Console <no-reply-googleplay-developer@google.com>',
+  to: 'mobile@webmobtech.com',
+  at: Date.now() - 4 * 3_600_000,
+  text: DEMO_TEXT,
+  html: `<div style="font-family:Roboto,Arial,sans-serif;max-width:600px;margin:0 auto;color:#202124">
+<div style="padding:24px 0;border-bottom:1px solid #e0e0e0"><b style="font-size:20px;color:#01875f">Google Play</b> <span style="color:#5f6368">Console</span></div>
+${DEMO_TEXT.split('\n\n').map((p, i) => i === 3 ? `<div style="background:#fce8e6;border-left:4px solid #d93025;padding:12px 16px;margin:16px 0">${p.replace(/\n/g, '<br>')}</div>` : `<p style="line-height:1.6">${p.replace(/\n/g, '<br>')}</p>`).join('')}
+<p><a href="https://play.google.com/console" style="display:inline-block;background:#01875f;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Go to Play Console</a></p></div>`,
+};
