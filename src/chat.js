@@ -2,7 +2,9 @@
 // Target is either an incoming-webhook URL or a space name ("spaces/AAAA…") posted to as a Chat app.
 import { google } from 'googleapis';
 import { config } from './config.js';
-import { fmtDuration, fmtTime, errText } from './util.js';
+import { fmtDuration, fmtTime, errText, displayVersion } from './util.js';
+
+export { displayVersion };
 import { channelLabel } from './status-map.js';
 
 const STORE_NAME = { apple: 'App Store Connect', google: 'Google Play' };
@@ -148,10 +150,11 @@ const NEXT_STEP = {
 const kv = (label, text) => ({ decoratedText: { topLabel: label, text: String(text), wrapText: true } });
 
 /** Card for one status change. */
-export function statusCard({ app, account, channel, version, from, to, at, submittedAt, reason, links = [] }) {
+export function statusCard({ app, account, channel, version, extra, from, to, at, submittedAt, reason, links = [] }) {
+  const ver = displayVersion(app.store, version, extra);
   const widgets = [
     kv('Status', from ? `${from.emoji} ${from.label}  →  <b>${to.emoji} ${to.label}</b>` : `<b>${to.emoji} ${to.label}</b>`),
-    kv('Version', version || '—'),
+    kv('Version', ver),
   ];
   widgets.push(kv('Account', account?.name || app.accountId));
   widgets.push(kv('Time', fmtTime(at)));
@@ -164,18 +167,21 @@ export function statusCard({ app, account, channel, version, from, to, at, submi
   const store = app.store === 'google' ? `Google Play · ${channelLabel(channel)}` : channelLabel(channel);
   const lines = [
     `${to.emoji}  *${to.label.toUpperCase()}*`,
+    '',
     `*${clean(app.name)}*`,
     '',
-    `📱  ${store}   ·   v${clean(version || '—')}`,
+    `📱  *Store:*  ${store}`,
+    `🏷️  *Version:*  ${clean(ver)}`,
   ];
-  if (from && from.label !== to.label) lines.push(`🔄  ${from.label}  →  *${to.label}*`);
+  if (from && from.label !== to.label) lines.push(`🔄  *Status:*  ${from.label}  →  *${to.label}*`);
+  else lines.push(`🔄  *Status:*  *${to.label}*`);
   if (reason) lines.push('', '📝  *Reason*', box(reason));
   if (NEXT_STEP[to.category]) lines.push('', NEXT_STEP[to.category]);
   lines.push('', `🏢  ${clean(account?.name || app.accountId)}`, `🕒  ${fmtTime(at)}`);
   const lk = links.filter((l) => l?.url).map((l) => `<${l.url}|${l.text} ↗>`);
-  if (lk.length) lines.push(`🔗  ${lk.join('   ·   ')}`);
+  if (lk.length) lines.push('', `🔗  ${lk.join('   ·   ')}`);
   return {
-    text: `${to.emoji} ${app.name} ${version || ''} – ${to.label}`,
+    text: `${to.emoji} ${app.name} ${ver} – ${to.label}`,
     chatText: lines.join('\n'),
     cardsV2: [
       {
@@ -201,7 +207,7 @@ export function storeMessageCard({ app, subject, from, snippet, emailUrl, at }) 
   widgets.push(kv('Time', fmtTime(at || Date.now())));
   const sections = [{ widgets }];
   if (emailUrl) sections.push({ widgets: [{ buttonList: { buttons: [{ text: 'Open email', onClick: { openLink: { url: emailUrl } } }] } }] });
-  const t = ['📩  *NEW MESSAGE FROM GOOGLE PLAY*', `*${clean(app ? app.name : 'Google Play Console')}*`, '', `✉️  *${clean(subject || '(no subject)')}*`];
+  const t = ['📩  *NEW MESSAGE FROM GOOGLE PLAY*', '', `*${clean(app ? app.name : 'Google Play Console')}*`, '', `✉️  *${clean(subject || '(no subject)')}*`];
   if (snippet) t.push(box(snippet, 700));
   t.push('', '👉 Open the email for the full details', '', `🕒  ${fmtTime(at || Date.now())}`);
   if (emailUrl) t.push(`🔗  <${emailUrl}|Open email ↗>`);

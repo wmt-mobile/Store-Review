@@ -11,6 +11,7 @@ export function pickAppStoreState(versionsResp, submissionsResp) {
     id: v.id,
     version: v.attributes.versionString,
     platform: v.attributes.platform,
+    build: (versionsResp.included || []).find((i) => i.type === 'builds' && i.id === v.relationships?.build?.data?.id)?.attributes?.version,
     created: Date.parse(v.attributes.createdDate || 0) || 0,
     state: REMOVED.has(v.attributes.appStoreState)
       ? v.attributes.appStoreState
@@ -31,7 +32,7 @@ export function pickAppStoreState(versionsResp, submissionsResp) {
     version: current.version,
     status: current.state,
     submittedAt,
-    extra: { platform, liveVersion: live && live.id !== current.id ? live.version : undefined },
+    extra: { platform, build: current.build, liveVersion: live && live.id !== current.id ? live.version : undefined },
   };
 }
 

@@ -46,3 +46,15 @@ export async function mapLimit(items, limit, fn) {
 }
 
 export const appKeyOf = (store, accountId, appId) => `${store}:${accountId}:${appId}`;
+
+/** Version as people read it: "1.3.80 (193)" — version name, then build / version code. */
+export function displayVersion(store, version, extra = {}) {
+  const v = String(version ?? '').trim();
+  if (!v) return '—';
+  const m = v.match(/^(\d+)\s*\((.+)\)$/); // Play's default release name: "193 (1.3.80)"
+  if (m) return `${m[2].trim()} (${m[1]})`;
+  if (v.includes('(')) return v;
+  const build = store === 'google' ? extra?.versionCodes : extra?.build;
+  if (build && String(build) !== v) return `${v} (${String(build).split(',').join(', ')})`;
+  return v;
+}

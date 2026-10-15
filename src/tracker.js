@@ -156,6 +156,7 @@ export class Tracker {
       account,
       channel,
       version,
+      extra: { ...prev?.extra, ...extra },
       from: versionChanged ? null : from,
       to,
       at,

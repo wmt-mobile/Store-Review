@@ -257,3 +257,14 @@ test('cards become readable Chat text for "post as me"', async () => {
   assert.match(t, /<https:\/\/appstoreconnect\.apple\.com\|Open App Store Connect>/);
   assert.doesNotMatch(t, /<b>|<\/b>/);
 });
+
+test('versions read as "name (build)" in Chat', async () => {
+  const { displayVersion, statusCard } = await import('../src/chat.js');
+  assert.equal(displayVersion('google', '193 (1.3.80)'), '1.3.80 (193)');
+  assert.equal(displayVersion('google', '1.3.80', { versionCodes: '193' }), '1.3.80 (193)');
+  assert.equal(displayVersion('apple', '1.0.55', { build: '12' }), '1.0.55 (12)');
+  assert.equal(displayVersion('apple', '1.0.55'), '1.0.55');
+  const c = statusCard({ app: { name: 'Telfon', store: 'google', accountId: 'a' }, channel: 'production', version: '193 (1.3.80)', to: { emoji: '📤', label: 'Sent to Google', category: 'submitted' }, at: Date.now() });
+  assert.match(c.chatText, /^📤 {2}\*SENT TO GOOGLE\*\n\n\*Telfon\*\n\n/);
+  assert.match(c.chatText, /Version:\*  1\.3\.80 \(193\)/);
+});

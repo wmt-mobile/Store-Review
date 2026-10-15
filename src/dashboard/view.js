@@ -1,6 +1,7 @@
 // Pure: builds the dashboard model from store data.
 import { describe, channelLabel, isPending, CATEGORY_ORDER } from '../status-map.js';
 import { primaryConsoleUrl, consoleLinks } from '../links.js';
+import { displayVersion } from '../util.js';
 
 const CH_ORDER = ['appstore', 'testflight', 'production', 'beta', 'alpha', 'internal'];
 
@@ -25,7 +26,7 @@ export function buildDashboard(data, accounts, { now = Date.now(), stuckHours = 
       const c = {
         channel: ch,
         channelLabel: channelLabel(ch),
-        version: s.version,
+        version: s.version ? displayVersion(app.store, s.version, s.extra) : '',
         status: s.status,
         label: d.label,
         emoji: d.emoji,
@@ -126,7 +127,7 @@ function buildActivity(data, accById, now, limit = 120) {
         accountName: accById[app.accountId]?.name || app.accountId,
         channel: h.channel,
         channelLabel: channelLabel(h.channel),
-        version: h.version,
+        version: h.version ? displayVersion(app.store, h.version) : '',
         category: to.category,
         label: to.label,
         emoji: to.emoji,

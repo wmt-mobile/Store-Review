@@ -79,7 +79,7 @@ export class AppleClient {
 
   appStoreVersions(appId) {
     return this.get(
-      `/v1/apps/${appId}/appStoreVersions?limit=10&fields[appStoreVersions]=versionString,appStoreState,appVersionState,platform,createdDate,releaseType`
+      `/v1/apps/${appId}/appStoreVersions?limit=10&fields[appStoreVersions]=versionString,appStoreState,appVersionState,platform,createdDate,releaseType,build&include=build&fields[builds]=version`
     );
   }
 
