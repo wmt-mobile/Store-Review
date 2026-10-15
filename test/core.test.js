@@ -239,14 +239,16 @@ test('only release channels post: App Store + Play production; TestFlight, testi
   assert.ok(tracker.d.channels[play].alpha, 'testing tracks are still tracked for the dashboard');
 });
 
-test('unclassified Play emails are forwarded, but not on the first read', async () => {
+test('only release status messages reach Chat: no email forwards, no sync alerts', async () => {
   const { tracker, sent } = mkTracker();
   const app = tracker.d.apps[tracker.registerApp({ store: 'google', accountId: 'g1', appId: 'com.x', name: 'X' })];
-  assert.equal(await tracker.notifyStoreMessage({ app, subject: 'Hello' }), false);
   tracker.d.meta.gmailInitialized = true;
-  assert.equal(await tracker.notifyStoreMessage({ app, subject: 'Your app has a new policy notice' }), true);
-  assert.equal(sent.length, 1);
-  assert.match(sent[0].msg.text, /policy notice/);
+  assert.equal(await tracker.notifyStoreMessage({ app, subject: 'Your app has a new policy notice' }), false);
+  await tracker.reportError('g1', new Error('403 permission'), 'poll');
+  assert.equal(sent.length, 0);
+  assert.match(tracker.store.account('g1').error, /403/);
+  const r = await tracker.update('google:g1:com.missing', 'production', { version: '1', status: 'LIVE' });
+  assert.equal(r.unknown, true, 'unknown app is skipped, not thrown');
 });
 
 test('cards become readable Chat text for "post as me"', async () => {

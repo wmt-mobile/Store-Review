@@ -1,7 +1,7 @@
 // Change detection, de-dupe, review duration and error alerts.
 // Every source (Apple poll, Apple webhook poke, Play poll, Gmail) funnels through update().
 import { describe, isPending, isTerminal, RELEASE_CHANNELS } from './status-map.js';
-import { statusCard, alertCard, storeMessageCard, safeSend } from './chat.js';
+import { statusCard, safeSend } from './chat.js';
 import { consoleLinks } from './links.js';
 import { appKeyOf, errText } from './util.js';
 
@@ -10,7 +10,6 @@ export const NOTIFY_CHANNELS = RELEASE_CHANNELS;
 // Drafts / internal-only states aren't store updates.
 const SILENT_CATEGORIES = new Set(['draft', 'testing', 'none']);
 
-const ALERT_EVERY_MS = 6 * 3_600_000;
 const HISTORY_MAX = 50;
 
 
@@ -88,7 +87,11 @@ export class Tracker {
    */
   async update(appKey, channel, { version, status, submittedAt, reason, at = Date.now(), eventId, extra } = {}) {
     const app = this.d.apps[appKey];
-    if (!app) throw new Error(`unknown app ${appKey}`);
+    if (!app) {
+      // App list was reloaded mid-poll (e.g. a just-discovered app not saved yet). Skip; the next tick catches it.
+      console.warn(`[tracker] skipped update for unknown app ${appKey}`);
+      return { changed: false, notified: false, unknown: true };
+    }
     if (eventId) {
       if (this.d.seen[eventId]) return { changed: false, notified: false, duplicate: true };
       this.d.seen[eventId] = Date.now();
@@ -167,15 +170,12 @@ export class Tracker {
     return { changed: true, notified: true };
   }
 
-  /** Forward a store email we couldn't map to a status, so nothing from the store is missed. */
-  async notifyStoreMessage({ app, subject, from, snippet, emailUrl, at }) {
-    if (app?.hidden || app?.muted) return false;
-    if (this.config.silentFirstRun && !this.d.meta.gmailInitialized) return false;
-    const card = storeMessageCard({ app, subject, from, snippet, emailUrl, at });
-    await this.send(card, { webhook: app?.chatWebhook || this.config.chatWebhook, threadKey: app ? this.threadFor(app.key, 'store-mail') : 'play-console-mail' });
+  /** A store email we couldn't map to a status. Chat only gets release status messages, so this is just recorded. */
+  async notifyStoreMessage({ app, subject }) {
     this.onEvent('store_message', { app, subject });
-    return true;
+    return false;
   }
+
 
   threadFor(appKey, version) {
     const k = `${appKey}:${version || 'noversion'}`;
@@ -192,7 +192,7 @@ export class Tracker {
     this.store.save();
   }
 
-  /** Record a failing account and alert the space at most every 6h. */
+  /** Record a failing account. Shown on the dashboard and in the audit log; nothing is posted to Chat. */
   async reportError(accountId, err, context = 'poll') {
     const a = this.store.account(accountId);
     const msg = errText(err);
@@ -201,17 +201,6 @@ export class Tracker {
     this.store.save();
     console.error(`[${accountId}] ${context} failed:`, msg);
     this.onEvent('error', { accountId, context, message: msg });
-    if (a.lastAlertAt && Date.now() - a.lastAlertAt < ALERT_EVERY_MS) return;
-    a.lastAlertAt = Date.now();
-    this.store.save();
-    const acc = this.accountById(accountId);
-    await this.send(
-      alertCard(
-        `${acc?.name || accountId} · ${context === 'poll' ? 'store check' : context} failing`,
-        `${msg}\n\nCheck the API key / service account access for this account. Polling continues; this alert repeats at most every 6h.`,
-        { error: msg, hint: 'Check the API key / service account access in Review Radar → Setup. Checks keep running; this alert repeats at most every 6 h.' }
-      ),
-      { webhook: this.config.chatWebhook }
-    );
   }
+
 }
