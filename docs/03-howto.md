@@ -9,7 +9,7 @@ Step-by-step recipes for the changes you're most likely to need. Each one says w
 ```bash
 git add -A && git commit -m "what changed" && git push
 ```
-Vercel builds `main` automatically. Live in about a minute: https://store-review-eosin.vercel.app
+Vercel builds `main` automatically. Live in about a minute: https://wmt-storereview.vercel.app
 
 **Manual deploy** (only if GitHub auto-deploy is broken):
 ```bash

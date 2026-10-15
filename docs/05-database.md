@@ -62,7 +62,7 @@ select created, status_code, left(content, 200) from net._http_response order by
 select cron.unschedule('review-radar-tick');
 select cron.schedule('review-radar-tick', '* * * * *', $$
   select net.http_post(
-    url := 'https://store-review-eosin.vercel.app/api/cron/tick',
+    url := 'https://wmt-storereview.vercel.app/api/cron/tick',
     headers := jsonb_build_object(
       'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'review_radar_cron_secret'),
       'Content-Type', 'application/json'),

@@ -5,7 +5,7 @@ Where to look first:
 2. **Dashboard → Admin → Setup**: each account card shows its health and last sync time.
 3. **Vercel → project store-review → Logs** (filter on `/api/cron/tick`).
 4. **Supabase SQL:** the `cron.job_run_details` and `net._http_response` queries in [05 · Database](05-database.md#the-cron-job).
-5. **Health check:** https://store-review-eosin.vercel.app/health should return `{"ok":true,"mode":"supabase"}`.
+5. **Health check:** https://wmt-storereview.vercel.app/health should return `{"ok":true,"mode":"supabase"}`.
 
 ## No messages in Google Chat
 | Check | Fix |
@@ -51,7 +51,7 @@ Where to look first:
 ## Google sign-in (Gmail / Chat) errors
 | Error | Fix |
 |---|---|
-| `redirect_uri_mismatch` | Add `https://store-review-eosin.vercel.app/api/admin/gmail/callback` to the OAuth client's Authorized redirect URIs |
+| `redirect_uri_mismatch` | Add `https://wmt-storereview.vercel.app/api/admin/gmail/callback` to the OAuth client's Authorized redirect URIs |
 | "This app is blocked by your organisation" | The Workspace admin must allow the internal OAuth app |
 | "Google did not return a refresh token" | Remove app_review_bot at https://myaccount.google.com/permissions and sign in again |
 

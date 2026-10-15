@@ -25,7 +25,7 @@ When both exist, the **Setup page value wins over the environment default**. The
 | `AUTH_ALLOWED_EMAILS` | `mobile@webmobtech.com,other@webmobtech.com` | Who may sign in. Empty means any confirmed Supabase Auth user can (not recommended) |
 | `GOOGLE_CHAT_SPACE` | `spaces/AAQA3HMSggo`, or the space link | Fixed Chat space. Locks the space in the UI |
 | `CRON_SECRET` | 32+ random characters | Bearer token for `/api/cron/tick`. Must match the Supabase Vault secret `review_radar_cron_secret` |
-| `PUBLIC_BASE_URL` | `https://store-review-eosin.vercel.app` | Builds the Google OAuth redirect URLs |
+| `PUBLIC_BASE_URL` | `https://wmt-storereview.vercel.app` | Builds the Google OAuth redirect URLs |
 | `TZ_DISPLAY` | `Asia/Kolkata` | Time zone used in messages and the dashboard |
 | `STATUS_TOKEN` | random | Protects `GET /status?token=…` (raw JSON status) |
 
@@ -83,6 +83,6 @@ bunx vercel deploy --prod      # or just git push
 | **App Store Connect** (Users and Access → Integrations → Team Keys) | One API key per Apple team. Role App Manager or Admin. The `.p8` is uploaded in onboarding |
 | **Google Play Console** (Users and permissions) | Service account `app-review-bot@playstore-review-511513.iam.gserviceaccount.com` with *View app information*, *View app quality information*, *Release apps to testing tracks* |
 | **Google Cloud `playstore-review-511513`** | APIs enabled: Google Play Android Developer API, Play Developer Reporting API, Gmail API, Google Chat API. OAuth client `app_review_bot` (Web application). Chat API configuration saved once |
-| **OAuth client → Authorized redirect URIs** | `https://store-review-eosin.vercel.app/api/admin/gmail/callback` and `http://localhost:8080/api/admin/gmail/callback` |
+| **OAuth client → Authorized redirect URIs** | `https://wmt-storereview.vercel.app/api/admin/gmail/callback` and `http://localhost:8080/api/admin/gmail/callback` |
 | **Gmail** | Shared mailbox `mobile@webmobtech.com` receives Play Console emails (Play Console → Settings → Notifications) |
 | **Supabase** | Auth user(s), pg_cron job `review-radar-tick`, Vault secret `review_radar_cron_secret` |

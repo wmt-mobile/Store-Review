@@ -1,7 +1,6 @@
 node_modules/
 .env
 .env.*
-!.env.example
 .vercel/
 keys/*
 !keys/.gitkeep
@@ -16,3 +15,4 @@ client_secret_*.json
 .playwright-mcp/
 .vercel
 .env*
+!.env.example
