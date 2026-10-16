@@ -107,9 +107,9 @@ function Release({ store, rel, current, channelLabel, defaultOpen, title }) {
   );
 }
 
-function StatTile({ label, children, foot, footClass }) {
+function StatTile({ label, children, foot, footClass, className }) {
   return (
-    <div className="flex-1 min-w-0 flex flex-col gap-2 p-[14px] bg-surface-2 rounded-[14px]">
+    <div className={cx('flex-1 min-w-0 flex flex-col gap-2 p-[14px] bg-surface-2 rounded-[14px]', className)}>
       <div className="text-[10.5px] font-bold tracking-[0.8px] text-ink-3 whitespace-nowrap">{label}</div>
       {children}
       {foot && <div className={cx('text-[11.5px] font-medium truncate', footClass || 'text-ink-3')}>{foot}</div>}
@@ -159,7 +159,8 @@ function DrawerBody({ group, initialStore, onClose }) {
   const avg = durations.length ? durations.reduce((a, b) => a + b, 0) / durations.length : null;
   const [mute, setMute] = useMute(app, M?.admin);
   const p = pillFor(store, c);
-  const short = c?.category === 'approved' && c?.status === 'READY_TO_PUBLISH' ? 'Ready to publish' : p.text;
+  // tile is narrow: "Approved · ready to publish" → "Ready to publish" (both stores), as in the design
+  const short = c?.category === 'approved' ? (p.text.replace(/^Approved · /, '').replace(/^\w/, (x) => x.toUpperCase()) || p.text) : p.text;
 
   const toggleMute = async () => {
     if (!mute) return;
@@ -232,7 +233,7 @@ function DrawerBody({ group, initialStore, onClose }) {
               )}
             </div>
             <div className="flex flex-col sm:flex-row gap-[10px]">
-              <StatTile label="CURRENT STATUS"><span><Pill tone={p.tone}>{short}</Pill></span></StatTile>
+              <StatTile label="CURRENT STATUS" className="flex-[1.3_1_0%] sm:min-w-[170px]"><span className="min-w-0 max-w-full flex" title={p.text}><Pill tone={p.tone} className="max-w-full min-w-0"><span className="truncate">{short}</span></Pill></span></StatTile>
               <StatTile label="SUBMITTED AT" foot={c.submittedAt ? (tz() === 'Asia/Kolkata' ? 'IST' : tz()) : 'not submitted'}>
                 <div className="text-[15px] font-extrabold text-ink whitespace-nowrap">{c.submittedAt ? dateTime(c.submittedAt) : '—'}</div>
               </StatTile>
