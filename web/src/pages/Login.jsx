@@ -44,6 +44,7 @@ function ForgotForm({ initialEmail, onBack }) {
         </ul>
         <button type="button" onClick={onBack} className={primaryBtn}><ArrowLeft size={16} />Back to sign in</button>
         <button type="button" onClick={() => setSentTo('')} className="text-[13px] font-bold text-accent-text">Didn’t get it? Send again</button>
+        <a href="/reset-password" className="text-center text-[13px] font-bold text-ink-2 hover:text-ink">Email link opens the wrong page? Paste it here</a>
       </div>
     );
   }

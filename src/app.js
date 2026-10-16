@@ -6,7 +6,7 @@ import { config, allAccounts, accountById, gmailEnabled, ROOT } from './config.j
 import { Store, memoryStore } from './store.js';
 import { SupabaseStore, audit } from './db-store.js';
 import { supabaseEnabled } from './supabase.js';
-import { authEnabled, sessionFrom, setSession, clearSession, passwordLogin, requestPasswordReset, resetPassword } from './auth.js';
+import { authEnabled, sessionFrom, setSession, clearSession, passwordLogin, requestPasswordReset, resetPassword, exchangeRecoveryLink } from './auth.js';
 import { AccountRegistry } from './accounts.js';
 import { adminRouter, loadSettings } from './admin-api.js';
 import { Tracker } from './tracker.js';
@@ -313,6 +313,11 @@ app.post('/api/auth/forgot', express.json({ limit: '4kb' }), async (req, res) =>
   if (!r.ok) return res.status(r.error?.startsWith('Too many') ? 429 : 400).json(r);
   audit('auth.reset_requested', { actor: String(req.body?.email || '').trim().toLowerCase().slice(0, 120), details: { ip: req.ip, sent: r.sent } });
   res.json({ ok: true });
+});
+app.post('/api/auth/recovery-link', express.json({ limit: '8kb' }), async (req, res) => {
+  if (!useLogin()) return res.status(409).json({ ok: false, error: 'Password reset is only available when sign-in is on' });
+  const r = await exchangeRecoveryLink(req.body?.link, req.ip);
+  res.status(r.ok ? 200 : r.expired ? 401 : 400).json(r);
 });
 app.post('/api/auth/reset', express.json({ limit: '8kb' }), async (req, res) => {
   if (!useLogin()) return res.status(409).json({ ok: false, error: 'Password reset is only available when sign-in is on' });

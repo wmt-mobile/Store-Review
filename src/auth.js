@@ -178,3 +178,33 @@ export async function resetPassword(accessToken, password, ip) {
   attempts.delete(ip);
   return { ok: true, email };
 }
+
+/**
+ * Fallback when the email link points at the wrong site (Supabase Site URL not set):
+ * accepts the copied email link (…/auth/v1/verify?token=…&type=recovery) or the URL it landed on
+ * (…#access_token=…&type=recovery) and returns a recovery access token. Only ever calls SUPABASE_URL.
+ */
+export async function exchangeRecoveryLink(text, ip) {
+  const raw = String(text || '').trim().slice(0, 4096);
+  if (resetLimited(`link:${ip}`, 10, 15 * 60_000)) return { ok: false, error: 'Too many attempts — try again in 15 minutes' };
+  let url;
+  try {
+    url = new URL(raw);
+  } catch {
+    return { ok: false, error: 'Paste the whole link from the email (it starts with https://)' };
+  }
+  const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
+  if (hash.get('error_code')) return { ok: false, expired: true, error: 'That link has expired or was already used — request a new email' };
+  if (hash.get('access_token') && hash.get('type') === 'recovery') return { ok: true, accessToken: hash.get('access_token') };
+  const token = url.searchParams.get('token');
+  if (!token || url.searchParams.get('type') !== 'recovery') return { ok: false, error: 'That isn’t a password reset link — copy the “Reset Password” link from the email' };
+  const res = await fetch(`${sbBase()}/auth/v1/verify`, {
+    method: 'POST',
+    headers: { apikey: sbKey(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'recovery', token_hash: token }),
+  }).catch(() => null);
+  if (!res) return { ok: false, error: 'Could not reach Supabase — check the internet connection' };
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok || !j.access_token) return { ok: false, expired: true, error: 'That link has expired or was already used — request a new email' };
+  return { ok: true, accessToken: j.access_token };
+}

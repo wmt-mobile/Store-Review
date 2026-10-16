@@ -2,7 +2,7 @@
 // Supabase verifies the one-time link and redirects here with #access_token=…&type=recovery
 // (or #error=…&error_code=otp_expired). The token is moved out of the URL straight away.
 import { useEffect, useRef, useState } from 'react';
-import { Lock, Eye, EyeOff, Check, KeyRound, LinkIcon, ArrowLeft, X } from 'lucide-react';
+import { Lock, Eye, EyeOff, Check, KeyRound, LinkIcon, ArrowLeft, X, ClipboardPaste } from 'lucide-react';
 import { Spinner, cx } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
 import { AuthLayout, AuthHead, AuthError, fieldCls, inputCls, primaryBtn, readAuthHash } from './auth/AuthLayout.jsx';
@@ -35,12 +35,45 @@ function PasswordField({ id, label, value, onChange, show, onToggle, autoFocus, 
   );
 }
 
-function LinkProblem({ message }) {
+/** Fallback: the email link went to the wrong site — paste it here and the server redeems it with Supabase. */
+function PasteLink({ onToken }) {
+  const [link, setLink] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!link.trim()) return setError('Paste the link from the email');
+    setBusy(true);
+    setError('');
+    try {
+      const r = await api('/api/auth/recovery-link', { method: 'POST', body: { link: link.trim() } });
+      onToken(r.accessToken);
+    } catch (err) {
+      setError(err.message || 'That link didn’t work');
+      setBusy(false);
+    }
+  };
+  return (
+    <form onSubmit={submit} noValidate className="flex flex-col gap-3 p-4 rounded-[16px] bg-surface">
+      <div className="text-[14px] font-bold">Email link opened the wrong page?</div>
+      <p className="text-[12.5px] font-medium text-ink-2 leading-[1.5]">In the email, <b className="text-ink">right-click “Reset Password” → Copy link address</b> (don’t open it) and paste it here. You can also paste the address of the page it opened.</p>
+      <AuthError>{error}</AuthError>
+      <div className={cx(fieldCls, 'bg-surface-2')}>
+        <ClipboardPaste size={18} className="text-ink-2 shrink-0" />
+        <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://…supabase.co/auth/v1/verify?token=…" className={cx(inputCls, 'text-[13px] font-mono')} />
+      </div>
+      <button type="submit" disabled={busy} className={primaryBtn}>{busy ? <Spinner size={16} /> : <Check size={16} />}{busy ? 'Checking…' : 'Use this link'}</button>
+    </form>
+  );
+}
+
+function LinkProblem({ message, onToken }) {
   return (
     <div className="flex flex-col gap-5">
       <span className="size-[56px] rounded-full bg-red-soft text-red inline-flex items-center justify-center"><LinkIcon size={24} /></span>
-      <AuthHead title="This link can’t be used" sub={message || 'The reset link is invalid, expired or was already used. Links work once and expire after 1 hour.'} />
-      <a href="/login?forgot=1" className={primaryBtn}>Send a new reset link</a>
+      <AuthHead title={message ? 'This link can’t be used' : 'Reset your password'} sub={message || 'Open the link from the reset email, or paste it below.'} />
+      <PasteLink onToken={onToken} />
+      <a href="/login?forgot=1" className="w-full h-[50px] flex items-center justify-center px-4 rounded-[14px] text-[15px] font-bold ring-[1.5px] ring-inset ring-line text-ink hover:bg-surface">Send a new reset link</a>
       <a href="/login" className="inline-flex items-center justify-center gap-1.5 text-[13.5px] font-bold text-ink-2 hover:text-ink"><ArrowLeft size={15} />Back to sign in</a>
     </div>
   );
@@ -48,6 +81,7 @@ function LinkProblem({ message }) {
 
 export default function ResetPassword() {
   const [link] = useState(() => readAuthHash());
+  const [pasted, setPasted] = useState(null);
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [show, setShow] = useState(false);
@@ -63,12 +97,13 @@ export default function ResetPassword() {
     if (location.hash) history.replaceState(null, '', location.pathname);
   }, []);
 
-  const token = link.type === 'recovery' ? link.accessToken : null;
+  const token = pasted || (link.type === 'recovery' ? link.accessToken : null);
+  const usePasted = (t) => { setExpired(''); setError(''); setPasted(t); };
+  if (expired) return <AuthLayout><LinkProblem message={expired} onToken={usePasted} /></AuthLayout>;
   if (!token) {
     const msg = link.errorCode === 'otp_expired' ? 'This reset link has expired or was already used. Request a new one — it works once, for 1 hour.' : link.errorDescription?.replace(/\+/g, ' ');
-    return <AuthLayout><LinkProblem message={msg} /></AuthLayout>;
+    return <AuthLayout><LinkProblem message={msg} onToken={usePasted} /></AuthLayout>;
   }
-  if (expired) return <AuthLayout><LinkProblem message={expired} /></AuthLayout>;
 
   const checks = rules(password);
   const mismatch = confirm && confirm !== password;
