@@ -102,7 +102,7 @@ The UI is a React + Tailwind app in `web/` (Vite). Run the API in demo mode and 
 
 | Screen | File |
 |---|---|
-| Login · Onboarding · Landing (`/`) | `web/src/pages/Login.jsx`, `Onboarding.jsx`, `Landing.jsx` |
+| Login · Onboarding | `web/src/pages/Login.jsx`, `Onboarding.jsx` |
 | Overview | `web/src/pages/Overview.jsx` (+ `pages/overview/`) |
 | In review · Apps · Needs attention | `web/src/pages/InReview.jsx`, `Apps.jsx`, `Attention.jsx` |
 | Accounts · Activity | `web/src/pages/Accounts.jsx`, `Activity.jsx` |

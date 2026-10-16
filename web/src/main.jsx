@@ -17,7 +17,6 @@ const Audit = lazy(() => import('./pages/Audit.jsx'));
 const NotificationSettings = lazy(() => import('./pages/NotificationSettings.jsx'));
 const Login = lazy(() => import('./pages/Login.jsx'));
 const Onboarding = lazy(() => import('./pages/Onboarding.jsx'));
-const Landing = lazy(() => import('./pages/Landing.jsx'));
 
 function Dashboard() {
   return (
@@ -34,7 +33,7 @@ createRoot(document.getElementById('root')).render(
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Suspense fallback={null}>
         <Routes>
-          <Route path="/" element={<Landing />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/login" element={<Login />} />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/dashboard" element={<Dashboard />}>
