@@ -103,3 +103,108 @@ export async function passwordLogin(email, password, ip) {
   attempts.delete(ip);
   return { ok: true, email };
 }
+
+// ── password reset (Supabase Auth recovery flow) ──
+// 1. requestPasswordReset → Supabase emails a one-time link (POST /auth/v1/recover).
+// 2. The link verifies the token and lands on /reset-password#access_token=…&type=recovery.
+// 3. resetPassword sets the new password with that short-lived token (PUT /auth/v1/user).
+const resets = new Map();
+function resetLimited(key, max, windowMs) {
+  const a = resets.get(key);
+  if (!a || Date.now() - a.first > windowMs) {
+    resets.set(key, { count: 1, first: Date.now() });
+    return false;
+  }
+  return ++a.count > max;
+}
+const sbBase = () => process.env.SUPABASE_URL.replace(/\/$/, '');
+const sbKey = () => process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY;
+export const MIN_PASSWORD = 8;
+
+/**
+ * Always answers { ok:true } for a well-formed email (never reveals whether an account exists),
+ * unless the caller is rate-limited or Supabase can't be reached.
+ */
+export async function requestPasswordReset(email, ip, redirectTo) {
+  email = String(email || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, error: 'Enter a valid email address' };
+  if (resetLimited(`ip:${ip}`, 5, 15 * 60_000)) return { ok: false, error: 'Too many requests — try again in 15 minutes' };
+  // only allow-listed people can sign in, so only they get an email
+  if (allowed().length && !allowed().includes(email)) return { ok: true, sent: false };
+  if (resetLimited(`email:${email}`, 3, 60 * 60_000)) return { ok: true, sent: false };
+  const res = await fetch(`${sbBase()}/auth/v1/recover?redirect_to=${encodeURIComponent(redirectTo)}`, {
+    method: 'POST',
+    headers: { apikey: sbKey(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  }).catch(() => null);
+  if (!res) return { ok: false, error: 'Could not reach Supabase — check the internet connection' };
+  if (res.status === 429) return { ok: false, error: 'Too many reset emails were sent recently — wait a few minutes and try again' };
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({}));
+    console.warn('[auth] recover failed', res.status, j.error_code || j.msg || '');
+    // unknown users etc. still look like success
+    if (res.status >= 500) return { ok: false, error: 'Supabase could not send the email right now — try again later' };
+  }
+  return { ok: true, sent: res.ok };
+}
+
+/** Sets a new password using the recovery access token. Returns { ok, email } or { ok:false, error, expired? }. */
+export async function resetPassword(accessToken, password, ip) {
+  accessToken = String(accessToken || '');
+  password = String(password || '');
+  if (!accessToken || accessToken.length > 4096) return { ok: false, expired: true, error: 'This reset link is invalid — request a new one' };
+  if (password.length < MIN_PASSWORD) return { ok: false, error: `Use at least ${MIN_PASSWORD} characters` };
+  if (password.length > 72) return { ok: false, error: 'Use 72 characters or fewer' };
+  if (resetLimited(`set:${ip}`, 10, 15 * 60_000)) return { ok: false, error: 'Too many attempts — try again in 15 minutes' };
+  const headers = { apikey: sbKey(), Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
+  const who = await fetch(`${sbBase()}/auth/v1/user`, { headers }).catch(() => null);
+  if (!who) return { ok: false, error: 'Could not reach Supabase — check the internet connection' };
+  if (!who.ok) return { ok: false, expired: true, error: 'This reset link has expired or was already used — request a new one' };
+  const user = await who.json().catch(() => ({}));
+  const email = String(user.email || '').toLowerCase();
+  if (!email || (allowed().length && !allowed().includes(email))) return { ok: false, expired: true, error: 'This account can’t sign in to Review Radar' };
+  const res = await fetch(`${sbBase()}/auth/v1/user`, { method: 'PUT', headers, body: JSON.stringify({ password }) }).catch(() => null);
+  if (!res) return { ok: false, error: 'Could not reach Supabase — check the internet connection' };
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({}));
+    const code = j.error_code || '';
+    const msg = j.msg || j.message || j.error_description || '';
+    if (code === 'same_password' || /different from the old/i.test(msg)) return { ok: false, error: 'Choose a password different from your current one' };
+    if (code === 'weak_password' || /weak|at least/i.test(msg)) return { ok: false, error: msg || 'That password is too weak — try a longer one' };
+    if (res.status === 401 || res.status === 403) return { ok: false, expired: true, error: 'This reset link has expired — request a new one' };
+    if (code === 'reauthentication_needed') return { ok: false, error: 'Supabase asks for re-authentication — turn off “Secure password change” in Supabase Auth settings' };
+    return { ok: false, error: msg || 'Could not update the password' };
+  }
+  attempts.delete(ip);
+  return { ok: true, email };
+}
+
+/**
+ * Fallback when the email link points at the wrong site (Supabase Site URL not set):
+ * accepts the copied email link (…/auth/v1/verify?token=…&type=recovery) or the URL it landed on
+ * (…#access_token=…&type=recovery) and returns a recovery access token. Only ever calls SUPABASE_URL.
+ */
+export async function exchangeRecoveryLink(text, ip) {
+  const raw = String(text || '').trim().slice(0, 4096);
+  if (resetLimited(`link:${ip}`, 10, 15 * 60_000)) return { ok: false, error: 'Too many attempts — try again in 15 minutes' };
+  let url;
+  try {
+    url = new URL(raw);
+  } catch {
+    return { ok: false, error: 'Paste the whole link from the email (it starts with https://)' };
+  }
+  const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
+  if (hash.get('error_code')) return { ok: false, expired: true, error: 'That link has expired or was already used — request a new email' };
+  if (hash.get('access_token') && hash.get('type') === 'recovery') return { ok: true, accessToken: hash.get('access_token') };
+  const token = url.searchParams.get('token');
+  if (!token || url.searchParams.get('type') !== 'recovery') return { ok: false, error: 'That isn’t a password reset link — copy the “Reset Password” link from the email' };
+  const res = await fetch(`${sbBase()}/auth/v1/verify`, {
+    method: 'POST',
+    headers: { apikey: sbKey(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'recovery', token_hash: token }),
+  }).catch(() => null);
+  if (!res) return { ok: false, error: 'Could not reach Supabase — check the internet connection' };
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok || !j.access_token) return { ok: false, expired: true, error: 'That link has expired or was already used — request a new email' };
+  return { ok: true, accessToken: j.access_token };
+}

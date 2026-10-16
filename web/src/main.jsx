@@ -16,6 +16,7 @@ const Manage = lazy(() => import('./pages/Manage.jsx'));
 const Audit = lazy(() => import('./pages/Audit.jsx'));
 const NotificationSettings = lazy(() => import('./pages/NotificationSettings.jsx'));
 const Login = lazy(() => import('./pages/Login.jsx'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword.jsx'));
 const Onboarding = lazy(() => import('./pages/Onboarding.jsx'));
 
 function Dashboard() {
@@ -35,6 +36,7 @@ createRoot(document.getElementById('root')).render(
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/dashboard" element={<Dashboard />}>
             <Route index element={<Overview />} />

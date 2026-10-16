@@ -14,6 +14,7 @@ export const ACTIONS = {
   'chat.user_space_set': 'Selected Chat space', 'chat.test_sent': 'Sent test message', 'chat.test_failed': 'Test message failed', 'chat.notified': 'Posted to Google Chat',
   'chat.store_message': 'Recorded Play message', 'chat.digest_sent': 'Posted daily digest', 'chat.digest_failed': 'Daily digest failed',
   'prefs.updated': 'Changed preferences', 'auth.login': 'Signed in', 'auth.logout': 'Signed out', 'auth.login_failed': 'Failed sign-in attempt',
+  'auth.reset_requested': 'Requested password reset', 'auth.password_reset': 'Reset password',
   'gmail.client_saved': 'Saved Gmail OAuth client', 'gmail.connected': 'Connected Gmail', 'gmail.connect_failed': 'Gmail connection failed', 'gmail.disconnected': 'Disconnected Gmail',
   'gmail.query_updated': 'Changed Gmail search', 'gmail.parsed': 'Parsed rejection email', 'onboarding.completed': 'Completed onboarding', 'poll.manual': 'Checked stores now',
   'poll.error': 'Store check failed', 'stuck.alert': 'Review limit exceeded', 'attention.resolved': 'Marked resolved', 'attention.reopened': 'Reopened', 'attention.snoozed': 'Snoozed alert',
@@ -64,7 +65,7 @@ export function targetText(e) {
     case 'apps.discovered': return `${t} · ${d.count ?? 0} apps`;
     case 'account.added': return `${t}${d.store ? ` · ${d.store === 'apple' ? 'App Store Connect' : 'Google Play Console'}` : ''}${d.apps != null ? ` · ${d.apps} apps` : ''}`;
     case 'gmail.query_updated': return d.query || t;
-    case 'auth.login': case 'auth.login_failed': return d.ip ? `from ${d.ip}` : t;
+    case 'auth.login': case 'auth.login_failed': case 'auth.reset_requested': case 'auth.password_reset': return d.ip ? `from ${d.ip}` : t;
     case 'chat.test_failed': case 'gmail.connect_failed': case 'chat.user_connect_failed': return [t, d.error].filter(Boolean).join(' · ');
     case 'stuck.alert': return [t, d.store, d.version, d.limit && `${d.limit} limit`].filter(Boolean).join(' · ');
     case 'gmail.parsed': return [t, d.store, d.version, d.ai && 'AI summary created'].filter(Boolean).join(' · ');

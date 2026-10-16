@@ -44,6 +44,8 @@ Where to look first:
 ## Login
 | Problem | Fix |
 |---|---|
+| Reset email never arrives | The email isn't in `AUTH_ALLOWED_EMAILS`; Supabase's built-in mailer only delivers to organisation members, so add custom SMTP; or the hourly email limit was hit. Check Supabase → Logs → Auth |
+| Reset link opens localhost or the wrong site | Supabase → Authentication → URL Configuration: set the Site URL and add `…/reset-password` to Redirect URLs |
 | "Wrong email or password" for a correct password | The email isn't in `AUTH_ALLOWED_EMAILS` (Vercel), or the user isn't confirmed in Supabase |
 | "Too many attempts" | Wait 15 minutes (per-IP limit) |
 | Login loops back to the sign-in page | Cookies are blocked, or `ENCRYPTION_KEY` changed between deployments |
