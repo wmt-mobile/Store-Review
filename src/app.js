@@ -6,8 +6,7 @@ import { config, allAccounts, accountById, gmailEnabled, ROOT } from './config.j
 import { Store, memoryStore } from './store.js';
 import { SupabaseStore, audit } from './db-store.js';
 import { supabaseEnabled } from './supabase.js';
-import { authEnabled, sessionFrom, setSession, clearSession, passwordLogin, sign, verifyData, isAllowedEmail } from './auth.js';
-import { google } from 'googleapis';
+import { authEnabled, sessionFrom, setSession, clearSession, passwordLogin } from './auth.js';
 import { AccountRegistry } from './accounts.js';
 import { adminRouter, loadSettings } from './admin-api.js';
 import { Tracker } from './tracker.js';
@@ -307,39 +306,6 @@ app.post('/api/auth/logout', (req, res) => {
   clearSession(res);
   if (s && MODE === 'supabase') audit('auth.logout', { actor: s.email });
   res.json({ ok: true });
-});
-// "Continue with Google Workspace": OAuth (openid email) with the same Google client as Gmail/Chat.
-// Off unless GOOGLE_LOGIN_ENABLED=true, because the callback URL must first be added to the OAuth client.
-const googleLoginOn = () => useLogin() && process.env.GOOGLE_LOGIN_ENABLED === 'true' && Boolean(config.gmail.clientId && config.gmail.clientSecret);
-const googleRedirect = (req) => `${config.publicBaseUrl || `${req.protocol}://${req.get('host')}`}/api/auth/google/callback`;
-app.get('/api/auth/google/available', (_req, res) => res.json({ enabled: googleLoginOn() }));
-app.get('/api/auth/google', (req, res) => {
-  if (!googleLoginOn()) return res.redirect('/login?error=google_off');
-  const state = sign({ next: safeNext(req.query.next), nonce: crypto.randomBytes(12).toString('hex'), exp: Date.now() + 10 * 60_000 });
-  res.setHeader('Set-Cookie', `rr_gstate=${encodeURIComponent(state)}; HttpOnly; SameSite=Lax; Path=/api/auth/google; Max-Age=600${req.secure ? '; Secure' : ''}`);
-  const o = new google.auth.OAuth2(config.gmail.clientId, config.gmail.clientSecret, googleRedirect(req));
-  res.redirect(o.generateAuthUrl({ scope: ['openid', 'email'], state, prompt: 'select_account' }));
-});
-app.get('/api/auth/google/callback', async (req, res) => {
-  const cookie = (req.headers.cookie || '').split(/;\s*/).find((c) => c.startsWith('rr_gstate='))?.slice(10);
-  const st = verifyData(req.query.state);
-  if (!googleLoginOn() || !st || !cookie || decodeURIComponent(cookie) !== req.query.state) return res.redirect('/login?error=google_state');
-  try {
-    const o = new google.auth.OAuth2(config.gmail.clientId, config.gmail.clientSecret, googleRedirect(req));
-    const { tokens } = await o.getToken(String(req.query.code || ''));
-    const ticket = await o.verifyIdToken({ idToken: tokens.id_token, audience: config.gmail.clientId });
-    const p = ticket.getPayload();
-    if (!p?.email_verified || !isAllowedEmail(p.email)) {
-      audit('auth.login_failed', { actor: String(p?.email || 'unknown').slice(0, 120), details: { ip: req.ip, via: 'google' }, level: 'warn' });
-      return res.redirect('/login?error=google_denied');
-    }
-    setSession(res, req, p.email.toLowerCase());
-    audit('auth.login', { actor: p.email.toLowerCase(), details: { ip: req.ip, via: 'google' } });
-    res.redirect(st.next || '/dashboard');
-  } catch (e) {
-    console.warn('[auth:google]', e.message);
-    res.redirect('/login?error=google_failed');
-  }
 });
 app.get('/api/auth/me', requireDashboard, (req, res) => res.json({ email: req.user?.email || null, login: useLogin() }));
 

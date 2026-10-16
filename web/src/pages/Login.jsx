@@ -1,6 +1,6 @@
 // Sign-in page (pen.dev frame "Login"): dark brand panel with hatched bar art + email/password form.
 import { useEffect, useRef, useState } from 'react';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Check, MailCheck, TriangleAlert } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Check, TriangleAlert } from 'lucide-react';
 import { PhoneCall } from '@phosphor-icons/react';
 import { LogoTile, Spinner, cx } from '../components/ui.jsx';
 import { api } from '../lib/api.js';
@@ -37,13 +37,11 @@ export default function Login() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(params.get('error') || '');
   const [forgot, setForgot] = useState(false);
-  const [google, setGoogle] = useState(false);
   const pwRef = useRef(null);
 
   useEffect(() => {
     document.title = 'Sign in · Review Radar';
     if (email) pwRef.current?.focus();
-    api('/api/auth/google/available').then((r) => setGoogle(Boolean(r?.enabled))).catch(() => setGoogle(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -130,19 +128,6 @@ export default function Login() {
             {busy ? <Spinner size={16} /> : <ArrowRight size={16} />}
             {busy ? 'Signing in…' : 'Sign in'}
           </button>
-
-          {google && (
-            <>
-              <div className="flex items-center gap-3">
-                <span className="flex-1 h-px bg-line" />
-                <span className="text-[12.5px] font-semibold text-ink-3">or</span>
-                <span className="flex-1 h-px bg-line" />
-              </div>
-              <a href={`/api/auth/google?next=${encodeURIComponent(next)}`} className="w-full h-[50px] flex items-center justify-center gap-2 px-4 rounded-[14px] ring-[1.5px] ring-inset ring-line text-[15px] font-bold hover:bg-surface">
-                <MailCheck size={16} />Continue with Google Workspace
-              </a>
-            </>
-          )}
 
           <p className="text-center text-[12.5px] font-medium text-ink-3">Internal tool · access is limited to @webmobtechnologies.com</p>
         </form>

@@ -16,9 +16,6 @@ const allowed = () =>
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
 
-/** Google sign-in needs an explicit allow-list (otherwise any Google account could get in). */
-export const isAllowedEmail = (email) => allowed().length > 0 && allowed().includes(String(email || '').toLowerCase());
-
 export function sign(payload) {
   const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const mac = crypto.createHmac('sha256', secret()).update(body).digest('base64url');

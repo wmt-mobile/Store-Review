@@ -40,7 +40,6 @@ When both exist, the **Setup page value wins over the environment default**. The
 | `GROQ_API_KEY` | – | Groq API key for the AI rejection summary (title, what's wrong, how to fix, deadline). Without it, rejections post the full email only. **Secret** |
 | `GROQ_MODEL` | `openai/gpt-oss-120b` | Groq model used for the summary |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | – | Browser push for the notification centre. Generate once with `npx web-push generate-vapid-keys`. The private key is **secret**; changing the pair invalidates every browser subscription |
-| `GOOGLE_LOGIN_ENABLED` | false | Shows "Continue with Google Workspace" on the login page. First add `https://wmt-storereview.vercel.app/api/auth/google/callback` to the OAuth client's Authorized redirect URIs. Only `AUTH_ALLOWED_EMAILS` can sign in |
 | `GOOGLE_CHAT_WEBHOOK_URL` | – | Legacy webhook delivery (blocked in the WebMob Workspace) |
 | `DIGEST_ENABLED`, `DIGEST_TIME` | off | Daily summary. **Turned off on purpose:** updates are real-time |
 
@@ -90,6 +89,6 @@ bunx vercel deploy --prod      # or just git push
 | **App Store Connect** (Users and Access → Integrations → Team Keys) | One API key per Apple team. Role App Manager or Admin. The `.p8` is uploaded in onboarding |
 | **Google Play Console** (Users and permissions) | Service account `app-review-bot@playstore-review-511513.iam.gserviceaccount.com` with *View app information*, *View app quality information*, *Release apps to testing tracks* |
 | **Google Cloud `playstore-review-511513`** | APIs enabled: Google Play Android Developer API, Play Developer Reporting API, Gmail API, Google Chat API. OAuth client `app_review_bot` (Web application). Chat API configuration saved once |
-| **OAuth client → Authorized redirect URIs** | `https://wmt-storereview.vercel.app/api/admin/gmail/callback`, `http://localhost:8080/api/admin/gmail/callback`, and (for Google sign-in) `https://wmt-storereview.vercel.app/api/auth/google/callback` |
+| **OAuth client → Authorized redirect URIs** | `https://wmt-storereview.vercel.app/api/admin/gmail/callback` and `http://localhost:8080/api/admin/gmail/callback` |
 | **Gmail** | Shared mailbox `mobile@webmobtech.com` receives Play Console emails (Play Console → Settings → Notifications) |
 | **Supabase** | Auth user(s), pg_cron job `review-radar-tick`, Vault secret `review_radar_cron_secret` |
