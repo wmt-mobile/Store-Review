@@ -6,7 +6,10 @@ import { displayVersion } from '../util.js';
 const CH_ORDER = ['appstore', 'production'];
 const isRelease = (ch) => RELEASE_CHANNELS.has(ch);
 
-export function buildDashboard(data, accounts, { now = Date.now(), stuckHours = 48 } = {}) {
+const tail = (v, n = 4) => (v ? String(v).slice(-n) : null);
+const CHECK_TEXT = (c) => (c.ok ? `${c.apps ?? 0} apps · ${c.changes ? `${c.changes} change${c.changes === 1 ? '' : 's'}` : 'no changes'}` : c.error || 'Check failed');
+
+export function buildDashboard(data, accounts, { now = Date.now(), stuckHours = 48, intervals = {} } = {}) {
   const accById = Object.fromEntries(accounts.map((a) => [a.id, a]));
   const apps = [];
   const pending = [];
@@ -28,6 +31,7 @@ export function buildDashboard(data, accounts, { now = Date.now(), stuckHours = 
         channel: ch,
         channelLabel: channelLabel(ch),
         version: s.version ? displayVersion(app.store, s.version, s.extra) : '',
+        rawVersion: s.version || '',
         status: s.status,
         label: d.label,
         emoji: d.emoji,
@@ -92,6 +96,7 @@ export function buildDashboard(data, accounts, { now = Date.now(), stuckHours = 
     summary,
     accounts: accounts.map((a) => {
       const st = data.accounts?.[a.id] || {};
+      const intervalMin = Math.round((a.store === 'apple' ? intervals.apple : intervals.play) / 60_000) || null;
       return {
         id: a.id,
         name: a.name || a.id,
@@ -100,9 +105,25 @@ export function buildDashboard(data, accounts, { now = Date.now(), stuckHours = 
         lastPollAt: st.lastPollAt || null,
         lastDiscoveryAt: st.lastDiscoveryAt || null,
         error: st.error || null,
+        errorAt: st.errorAt || null,
         warning: st.discoveryWarning || null,
+        // safe hints only (never the key itself)
+        keyHint: tail(a.keyId),
+        issuerHint: tail(a.issuerId),
+        clientEmail: a.clientEmail || a.serviceAccount?.client_email || null,
+        developerId: a.developerId || null,
+        createdAt: a.createdAt ? Date.parse(a.createdAt) || a.createdAt : null,
+        intervalMin,
+        nextCheckAt: st.lastPollAt && intervalMin ? st.lastPollAt + intervalMin * 60_000 : null,
+        checks: (data.meta?.checks?.[a.id] || []).slice(0, 24),
       };
     }),
+    recentChecks: accounts
+      .flatMap((a) => (data.meta?.checks?.[a.id] || []).slice(0, 12).map((c) => ({ ...c, accountId: a.id, accountName: a.name || a.id, store: a.store, text: CHECK_TEXT(c) })))
+      .sort((x, y) => y.at - x.at)
+      .slice(0, 12),
+    resolved: data.meta?.resolved || {},
+    snoozed: Object.fromEntries(Object.entries(data.meta?.snoozed || {}).filter(([, until]) => until > now)),
     pending,
     attention,
     apps,
@@ -131,7 +152,11 @@ function buildActivity(data, accById, now, limit = 120) {
         accountName: accById[app.accountId]?.name || app.accountId,
         channel: h.channel,
         channelLabel: channelLabel(h.channel),
-        version: h.version ? displayVersion(app.store, h.version) : '',
+        version: h.version ? displayVersion(app.store, h.version, h.version === data.channels?.[app.key]?.[h.channel]?.version ? data.channels[app.key][h.channel].extra : {}) : '',
+        rawVersion: h.version || '',
+        userFraction: h.to === 'ROLLOUT' && h.version === data.channels?.[app.key]?.[h.channel]?.version ? data.channels[app.key][h.channel].extra?.userFraction ?? null : null,
+        status: h.to,
+        fromStatus: h.from || null,
         category: to.category,
         label: to.label,
         emoji: to.emoji,

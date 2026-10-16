@@ -2,32 +2,23 @@
 const H = 3_600_000;
 
 const ACCOUNTS = [
-  { id: 'wmt-apple', name: 'WebMob Technologies', store: 'apple' },
-  { id: 'clientx-apple', name: 'Client X Inc', store: 'apple' },
-  { id: 'wmt-play', name: 'WebMob Technologies', store: 'google', developerId: '1234567890' },
-  { id: 'clientx-play', name: 'Client X Inc', store: 'google' },
+  { id: 'wmt-apple', name: 'WebMobTechnologies', store: 'apple', keyId: 'AB12C7KQ2', issuerId: '69a6de7f-03e1-47e3-e053-5b8c7c11a4d1' },
+  { id: 'wmt-play', name: 'WebMobTechnologies', store: 'google', developerId: '1234567890', clientEmail: 'review-bot@wmt-play.iam.gserviceaccount.com' },
 ];
 
-// [account, appId, name, bundle, { channel: [status, version, hoursAgoChanged, hoursAgoSubmitted?, reason?] }]
+// Same sample apps as the pen.dev design.
+// [account, appId, name, bundle, { channel: [status, version, hoursAgoChanged, hoursAgoSubmitted?, reason?, extra?] }]
 const APPS = [
-  ['wmt-apple', '1450001', 'Troopool', 'com.wmt.troopool', { appstore: ['IN_REVIEW', '3.4.0', 3, 30], testflight: ['APPROVED', '3.4.0 (212)', 40] }],
-  ['wmt-apple', '1450002', 'FocusHub', 'com.wmt.focushub', { appstore: ['WAITING_FOR_REVIEW', '2.1.0', 52, 52], testflight: ['IN_REVIEW', '2.1.0 (88)', 5, 9] }],
-  ['wmt-apple', '1450003', 'LocalNest', 'com.wmt.localnest', { appstore: ['REJECTED', '1.8.2', 6, 50, 'Guideline 2.1 – Performance – App Completeness. Open App Store Connect → Resolution Center for the reviewer message.'], testflight: ['APPROVED', '1.8.2 (41)', 72] }],
-  ['wmt-apple', '1450004', 'Wriggle', 'com.wmt.wriggle', { appstore: ['READY_FOR_DISTRIBUTION', '1.2.0', 200] }],
-  ['wmt-apple', '1450005', 'Beaconify', 'com.wmt.beaconify', { appstore: ['PENDING_DEVELOPER_RELEASE', '4.0.0', 8, 31], testflight: ['WAITING_FOR_REVIEW', '4.0.1 (300)', 2, 2] }],
-  ['wmt-apple', '1450006', 'Arkiq', 'com.wmt.arkiq', { appstore: ['PREPARE_FOR_SUBMISSION', '0.9.0', 20], testflight: ['INTERNAL_ONLY', '0.9.0 (12)', 20] }],
-  ['clientx-apple', '1550001', 'ShopEase', 'com.clientx.shopease', { appstore: ['METADATA_REJECTED', '5.2.1', 14, 40, 'Metadata rejected – screenshots do not reflect the app in use.'] }],
-  ['clientx-apple', '1550002', 'Rideshare Pro', 'com.clientx.ride', { appstore: ['READY_FOR_DISTRIBUTION', '7.0.3', 300], testflight: ['APPROVED', '7.1.0 (900)', 26] }],
-  ['clientx-apple', '1550003', 'MediBook', 'com.clientx.medibook', { appstore: ['WAITING_FOR_REVIEW', '2.0.0', 10, 10] }],
-  ['clientx-apple', '1550004', 'TravelMate', 'com.clientx.travel', {}],
-  ['wmt-play', 'com.wmt.troopool', 'Troopool', 'com.wmt.troopool', { production: ['SENT_FOR_REVIEW', '3.4.0 (340)', 20, 20], beta: ['LIVE', '3.4.0 (339)', 50] }],
-  ['wmt-play', 'com.wmt.focushub', 'FocusHub', 'com.wmt.focushub', { production: ['ROLLOUT', '2.0.5 (205)', 30], internal: ['LIVE', '2.1.0 (210)', 3] }],
-  ['wmt-play', 'com.wmt.localnest', 'LocalNest', 'com.wmt.localnest', { production: ['REJECTED', '1.8.2 (182)', 4, 28, 'Issue found: Violation of Data safety policy\nYour Data safety form does not accurately reflect the data collected by your app (Location).'] }],
-  ['wmt-play', 'com.wmt.wriggle', 'Wriggle', 'com.wmt.wriggle', { production: ['LIVE', '1.2.0 (12)', 180] }],
-  ['wmt-play', 'com.wmt.beaconify', 'Beaconify', 'com.wmt.beaconify', { production: ['READY_TO_PUBLISH', '4.0.0 (400)', 7, 30], alpha: ['SENT_FOR_REVIEW', '4.0.1 (401)', 60, 60] }],
-  ['clientx-play', 'com.clientx.shopease', 'ShopEase', 'com.clientx.shopease', { production: ['POLICY_ACTION', '5.2.0 (520)', 12, null, 'Action required: complete the Health apps declaration by Nov 1.'] }],
-  ['clientx-play', 'com.clientx.ride', 'Rideshare Pro', 'com.clientx.ride', { production: ['LIVE', '7.0.3 (703)', 400], beta: ['SENT_FOR_REVIEW', '7.1.0 (710)', 5, 5] }],
-  ['clientx-play', 'com.clientx.medibook', 'MediBook', 'com.clientx.medibook', { production: ['HALTED', '1.9.0 (190)', 9] }],
+  ['wmt-apple', '6443471885', 'Telfon - Calls & Chats', 'com.webmob.telfon', { appstore: ['WAITING_FOR_REVIEW', '1.0.55', 2.23, 2.23, null, { build: '193', liveVersion: '1.0.54' }] }],
+  ['wmt-play', 'com.webmob.telfon', 'Telfon - Calls & Chats', 'com.webmob.telfon', { production: ['READY_TO_PUBLISH', '193 (1.3.80)', 0.9, 7.57, null, { versionCodes: '193', releaseStatus: 'completed' }] }],
+  ['wmt-apple', '6752694595', 'Qwik - AI Clothes Changer', 'com.webmob.qwik', { appstore: ['IN_REVIEW', '1.1.4', 1.13, 1.9, null, { build: '52', liveVersion: '1.1.3' }] }],
+  ['wmt-play', 'com.webmob.qwik', 'Qwik - AI Clothes Changer', 'com.webmob.qwik', { production: ['ROLLOUT', '30 (1.1.3)', 20, 30, null, { versionCodes: '30', releaseStatus: 'inProgress', userFraction: 0.2 }] }],
+  ['wmt-apple', '6450891336', 'QuestnQuiz', 'com.webmob.questnquiz', { appstore: ['WAITING_FOR_REVIEW', '1.0.3', 0.8, 0.8, null, { build: '24', liveVersion: '1.0.2' }] }],
+  ['wmt-play', 'com.webmob.questnquiz', 'QuestnQuiz', 'com.webmob.questnquiz', { production: ['IN_REVIEW', '24 (1.0.3)', 3.68, 3.68, null, { versionCodes: '24', releaseStatus: 'completed' }] }],
+  ['wmt-apple', '6504763982', 'Dwell Buddy Manager', 'com.webmob.dwellbuddy', { appstore: ['PREPARE_FOR_SUBMISSION', '1.0.0', 30, null, null, { build: '1' }] }],
+  ['wmt-play', 'com.webmob.dwellbuddy', 'Dwell Buddy Manager', 'com.webmob.dwellbuddy', { production: ['POLICY_ACTION', '3 (1.0.0)', 2.1, 20, 'Issue found: Missing Permissions Declaration Form', { versionCodes: '3', releaseStatus: 'completed' }] }],
+  ['wmt-apple', '6456385009', 'TrooPoo', 'com.webmob.troopoo', { appstore: ['IN_REVIEW', '2.4.0', 5, 26.2, null, { build: '88', liveVersion: '2.3.1' }] }],
+  ['wmt-play', 'com.webmob.troopoo', 'TrooPoo', 'com.webmob.troopoo', { production: ['REJECTED', '87 (2.4.0)', 17, 40, "Families policy: ads SDK isn't Families-certified", { versionCodes: '87', releaseStatus: 'completed' }] }],
 ];
 
 const ch_tf = (chans) => Boolean(chans.testflight);
@@ -37,8 +28,9 @@ export function loadDemoData(store) {
   const d = store.data;
   d.meta.demoAccounts = ACCOUNTS;
   for (const a of ACCOUNTS) d.accounts[a.id] = { lastPollAt: now - Math.random() * 4 * 60_000, lastDiscoveryAt: now - 2 * H };
-  d.accounts['clientx-play'].error = 'poll: 403: The caller does not have permission (service account not invited to this Play account)';
-  d.accounts['clientx-play'].errorAt = now - 3 * H;
+  d.accounts['wmt-play'].error = 'poll: 403 PERMISSION_DENIED on com.webmob.troopoo';
+  d.accounts['wmt-play'].errorAt = now - 4 * 60_000;
+  d.accounts['wmt-play'].lastPollAt = now - 38 * 60_000;
 
   for (const [accountId, appId, name, bundle, chans] of APPS) {
     const store_ = accountId.endsWith('apple') ? 'apple' : 'google';
@@ -46,7 +38,7 @@ export function loadDemoData(store) {
     d.apps[key] = { key, store: store_, accountId, appId, bundleOrPackage: bundle, name, discoveredAt: now - 30 * 24 * H };
     d.channels[key] = {};
     d.history[key] = [];
-    for (const [ch, [status, version, ago, subAgo, reason]] of Object.entries(chans)) {
+    for (const [ch, [status, version, ago, subAgo, reason, extra0]] of Object.entries(chans)) {
       d.channels[key][ch] = {
         version,
         status,
@@ -54,7 +46,7 @@ export function loadDemoData(store) {
         submittedAt: subAgo != null ? now - subAgo * H : null,
         reviewMs: subAgo != null && !['IN_REVIEW', 'WAITING_FOR_REVIEW', 'SENT_FOR_REVIEW'].includes(status) ? (subAgo - ago) * H : null,
         reason: reason || null,
-        extra: status === 'ROLLOUT' ? { userFraction: 0.2 } : ch === 'appstore' && status !== 'READY_FOR_DISTRIBUTION' && appId === '1450002' ? { liveVersion: '2.0.4' } : {},
+        extra: { ...(extra0 || {}) },
       };
       const first = store_ === 'apple' ? 'WAITING_FOR_REVIEW' : 'SENT_FOR_REVIEW';
       const hadSubmit = subAgo != null && subAgo !== ago;
@@ -83,48 +75,56 @@ export function loadDemoData(store) {
     }
     d.history[key].sort((a, b) => b.at - a.at);
   }
-  d.channels['google:wmt-play:com.wmt.localnest'].production.extra = {
+  d.channels['google:wmt-play:com.webmob.dwellbuddy'].production.extra = {
+    ...d.channels['google:wmt-play:com.webmob.dwellbuddy'].production.extra,
     messageId: DEMO_EMAIL.id,
     mailSubject: DEMO_EMAIL.subject,
     mailText: DEMO_EMAIL.text,
     emailUrl: 'https://mail.google.com/',
     ai: {
-      title: "Data safety form doesn't match collected data",
-      issues: ['Data safety form omits Location data the app collects', 'Detected in version code 182 (1.8.2)'],
-      fixes: ['Update Data safety in Play Console › App content to declare Location', 'Or remove location collection, then resubmit 1.8.2'],
-      deadline: '1 Nov 2026',
+      title: 'Permissions declaration missing for QUERY_ALL_PACKAGES',
+      issues: ['The build requests QUERY_ALL_PACKAGES, but no Permissions Declaration Form was submitted, so Google treats it as undeclared high-risk access.'],
+      fixes: ['Drop the permission if it isn’t core, or complete Play Console → App content → Sensitive permissions. Then upload a new build (versionCode 4+).'],
+      deadline: 'Oct 23, 2026',
     },
   };
   d.accounts.gmail = { lastPollAt: now - 90_000 };
+  // last 24 checks per account (Accounts screen) – Play's last two failed like the design
+  const M5 = 5 * 60_000;
+  d.meta.checks = {
+    'wmt-apple': Array.from({ length: 24 }, (_, i) => ({ at: now - 2 * 60_000 - i * M5, ok: true, ms: 900 + ((i * 137) % 600), apps: 5, changes: i === 0 ? 1 : i === 7 ? 2 : 0 })),
+    'wmt-play': Array.from({ length: 24 }, (_, i) => (i < 2
+      ? { at: now - 4 * 60_000 - i * M5, ok: false, ms: 800 + i * 100, error: '403 PERMISSION_DENIED on com.webmob.troopoo' }
+      : { at: now - 4 * 60_000 - i * M5, ok: true, ms: 1300 + ((i * 211) % 900), apps: 5, changes: i === 8 ? 1 : 0 })),
+  };
+  d.meta.resolved = {
+    'apple:wmt-apple:6443471885|appstore|1.0.54': { at: now - 5 * 24 * H, by: 'riya.k@webmobtechnologies.com', note: 'Guideline 2.1 — demo account', appName: 'Telfon - Calls & Chats', store: 'apple', version: '1.0.54' },
+    'google:wmt-play:com.webmob.qwik|production|25 (1.1.2)': { at: now - 10 * 24 * H, by: 'arjun.m@webmobtechnologies.com', note: 'Data safety form mismatch', appName: 'Qwik - AI Clothes Changer', store: 'google', version: '1.1.2' },
+    'apple:wmt-apple:6450891336|appstore|1.0.1': { at: now - 17 * 24 * H, by: 'riya.k@webmobtechnologies.com', note: 'Guideline 4.3 — spam', appName: 'QuestnQuiz', store: 'apple', version: '1.0.1' },
+  };
   d.initialized = Object.fromEntries(ACCOUNTS.map((a) => [a.id, now]));
 }
 
 const DEMO_TEXT = `Hi Developers at WebMob Technologies,
 
-We reviewed LocalNest, with package name com.wmt.localnest, and found that your app is not compliant with Google Play Policies.
+After review, Dwell Buddy Manager, com.webmob.dwellbuddy, has been rejected and wasn't published because it doesn't comply with the Permissions and APIs that Access Sensitive Information policy.
 
-Publishing status
-Your app update with version code 182 (1.8.2) has been rejected.
+Issue found: Missing Permissions Declaration Form
+Your app requests the QUERY_ALL_PACKAGES permission, but you haven't submitted a valid declaration in Play Console.
 
-Issue found: Violation of Data safety policy
-Your Data safety form does not accurately reflect the data collected by your app (Location).
-
-Action required
-Update your Data safety form in Play Console > Policy > App content, or remove the data collection, then resubmit.
-
-If you don't fix this by 1 November 2026, your app may be removed from Google Play.
+Action required: Remove the permission or complete the declaration, then submit an updated version of your app. Please address this issue by October 23, 2026.
 
 The Google Play Team`;
 
 export const DEMO_EMAIL = {
-  id: 'demo0localnest01',
-  subject: 'Action required: Your app update for LocalNest was rejected',
-  from: 'Google Play Console <no-reply-googleplay-developer@google.com>',
+  id: 'demo0dwellbuddy1',
+  subject: 'Action required: Dwell Buddy Manager (com.webmob.dwellbuddy) was rejected',
+  from: 'Google Play Console <noreply-play-developer-console@google.com>',
   to: 'mobile@webmobtech.com',
   at: Date.now() - 4 * 3_600_000,
   text: DEMO_TEXT,
   html: `<div style="font-family:Roboto,Arial,sans-serif;max-width:600px;margin:0 auto;color:#202124">
 <div style="padding:24px 0;border-bottom:1px solid #e0e0e0"><b style="font-size:20px;color:#01875f">Google Play</b> <span style="color:#5f6368">Console</span></div>
-${DEMO_TEXT.split('\n\n').map((p, i) => i === 3 ? `<div style="background:#fce8e6;border-left:4px solid #d93025;padding:12px 16px;margin:16px 0">${p.replace(/\n/g, '<br>')}</div>` : `<p style="line-height:1.6">${p.replace(/\n/g, '<br>')}</p>`).join('')}
+${DEMO_TEXT.split('\n\n').map((p, i) => i === 2 ? `<div style="background:#fce8e6;border-left:4px solid #d93025;padding:12px 16px;margin:16px 0">${p.replace(/\n/g, '<br>')}</div>` : `<p style="line-height:1.6">${p.replace(/\n/g, '<br>')}</p>`).join('')}
 <p><a href="https://play.google.com/console" style="display:inline-block;background:#01875f;color:#fff;padding:10px 18px;border-radius:4px;text-decoration:none">Go to Play Console</a></p></div>`,
 };

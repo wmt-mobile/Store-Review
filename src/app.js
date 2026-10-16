@@ -6,7 +6,8 @@ import { config, allAccounts, accountById, gmailEnabled, ROOT } from './config.j
 import { Store, memoryStore } from './store.js';
 import { SupabaseStore, audit } from './db-store.js';
 import { supabaseEnabled } from './supabase.js';
-import { authEnabled, sessionFrom, setSession, clearSession, passwordLogin } from './auth.js';
+import { authEnabled, sessionFrom, setSession, clearSession, passwordLogin, sign, verifyData, isAllowedEmail } from './auth.js';
+import { google } from 'googleapis';
 import { AccountRegistry } from './accounts.js';
 import { adminRouter, loadSettings } from './admin-api.js';
 import { Tracker } from './tracker.js';
@@ -21,6 +22,11 @@ import { safeSend } from './chat.js';
 import { loadDemoData, DEMO_EMAIL } from './demo.js';
 import { waitUntil } from '@vercel/functions';
 import { db } from './supabase.js';
+import { errText } from './util.js';
+import { uiRouter } from './ui-api.js';
+import { PushStore, pushEnabled, pushMessage, sendPush } from './push.js';
+import { describe, RELEASE_CHANNELS as NOTIFY_CHANNELS } from './status-map.js';
+import { demoAdminRouter } from './demo-admin.js';
 
 // ── mode: demo | supabase | file ───────────────────────────
 export const MODE = config.demoData ? 'demo' : supabaseEnabled() ? 'supabase' : 'file';
@@ -65,6 +71,7 @@ const tracker = new Tracker({
   accountById: findAccount,
   config,
   onEvent: (type, e) => {
+    if (type === 'status' && e.notify) queuePush(e);
     if (MODE !== 'supabase') return;
     if (type === 'error') audit('poll.error', { target: findAccount(e.accountId)?.name || e.accountId, details: { context: e.context, message: e.message }, level: 'error' });
     else if (type === 'store_message') audit('chat.store_message', { target: e.app?.name || 'Google Play Console', details: { subject: e.subject } });
@@ -84,6 +91,7 @@ async function once(name, fn) {
 const isRunning = (accountId) => running.has(`poll:${accountId}`);
 
 async function discoverAndPoll(account) {
+  const t0 = Date.now();
   try {
     const st = store.account(account.id);
     if (!st.lastDiscoveryAt || Date.now() - st.lastDiscoveryAt > config.discoveryMs) {
@@ -93,11 +101,22 @@ async function discoverAndPoll(account) {
     const r = account.store === 'apple' ? await pollAppleAccount(account, tracker) : await pollPlayAccount(account, tracker);
     tracker.pollOk(account.id);
     tracker.markInitialized(account.id);
+    recordCheck(account.id, { ok: true, ms: Date.now() - t0, apps: r.apps, changes: changesSince(account.id, t0) });
     console.log(`[poll:${account.name || account.id}] ${r.apps} apps${r.failed ? `, ${r.failed} failed` : ''}`);
   } catch (e) {
+    recordCheck(account.id, { ok: false, ms: Date.now() - t0, error: errText(e).slice(0, 200) });
     await tracker.reportError(account.id, e, 'poll');
   }
 }
+
+/** Last 24 checks per account (Accounts screen). Kept in runtime meta, so it persists with the state. */
+function recordCheck(accountId, c) {
+  const all = (store.data.meta.checks ||= {});
+  all[accountId] = [{ at: Date.now(), ...c }, ...(all[accountId] || [])].slice(0, 24);
+  store.save();
+}
+const changesSince = (accountId, t0) =>
+  Object.values(store.data.apps).filter((a) => a.accountId === accountId).reduce((n, a) => n + (store.data.history[a.key] || []).filter((h) => h.at >= t0).length, 0);
 const runPoll = (a) => {
   const p = once(`poll:${a.id}`, () => discoverAndPoll(a)).catch((e) => console.error('[poll]', e.message));
   if (SERVERLESS) waitUntil(p.then(() => store.flush()));
@@ -132,7 +151,49 @@ export async function tickOnce({ force = false } = {}) {
     if (due(last, config.gmailPollMs)) { jobs.push(once('gmail', pollGmailOnce)); ran.push('gmail'); }
   }
   await Promise.allSettled(jobs);
+  await tracker.flushHeld().catch((e) => console.warn('[chat] held posts:', e.message));
+  checkStuck();
+  await flushPush();
   return ran;
+}
+
+// ── browser push ──
+const pushStore = new PushStore(MODE);
+const pushQueue = [];
+function queuePush(e) {
+  if (!pushEnabled()) return;
+  const ch = store.data.channels[e.app.key]?.[e.channel] || {};
+  const msg = pushMessage({ app: e.app, channel: e.channel, version: e.version, to: e.to, extra: ch.extra, submittedAt: ch.submittedAt });
+  if (!msg) return;
+  const p = sendPush(pushStore, { ...msg, url: '/dashboard/apps', tag: `${e.app.key}:${e.channel}` }).catch((err) => console.warn('[push]', err.message));
+  pushQueue.push(p);
+  if (SERVERLESS) waitUntil(p);
+}
+async function flushPush() {
+  const all = pushQueue.splice(0);
+  await Promise.allSettled(all);
+}
+/** One push per build that goes over the review time limit (no Chat post: Chat gets release statuses only). */
+function checkStuck() {
+  if (!pushEnabled()) return;
+  const meta = store.data.meta;
+  const done = (meta.stuckNotified ||= {});
+  const limit = config.stuckHours * 3_600_000;
+  const now = Date.now();
+  for (const app of Object.values(store.data.apps)) {
+    if (app.hidden || app.muted) continue;
+    for (const [channel, s] of Object.entries(store.data.channels[app.key] || {})) {
+      if (!NOTIFY_CHANNELS.has(channel) || !s.submittedAt) continue;
+      const cat = describe(app.store, channel, s.status).category;
+      const key = `${app.key}|${channel}|${s.version}`;
+      if (!['submitted', 'in_review'].includes(cat) || now - s.submittedAt < limit || done[key] || meta.snoozed?.[key] > now) continue;
+      done[key] = now;
+      const msg = pushMessage({ app, channel, version: s.version, to: s.status, extra: s.extra, event: 'stuck', elapsedMs: now - s.submittedAt });
+      pushQueue.push(sendPush(pushStore, { ...msg, url: '/dashboard/attention', tag: `stuck:${key}` }).catch(() => {}));
+    }
+  }
+  for (const [k, at] of Object.entries(done)) if (now - at > 30 * 86_400_000) delete done[k];
+  store.save();
 }
 
 function startSchedulers() {
@@ -160,7 +221,7 @@ app.set('trust proxy', 1);
 
 if (SERVERLESS && MODE === 'supabase') {
   app.use(async (req, res, next) => {
-    if (req.path === '/health' || req.path === '/login' || req.path.startsWith('/api/cron/')) return next();
+    if (req.path === '/health' || req.path === '/login' || req.path === '/' || req.path.startsWith('/api/cron/') || req.path.startsWith('/assets/') || req.path.startsWith('/landing/') || /^\/[\w.-]+\.(svg|png|js|webmanifest)$/.test(req.path)) return next();
     try {
       if (Date.now() - loadedAt > 3000) await refreshState();
     } catch (e) {
@@ -188,6 +249,20 @@ const safeEq = (a, b) => {
 const cookieToken = (req) => (req.headers.cookie || '').split(/;\s*/).find((c) => c.startsWith('srn_dash='))?.slice(9);
 
 const page = (f) => path.join(ROOT, 'src/dashboard', f);
+
+// React UI (web/ → dist/web via `bun run build`). Falls back to the old single-file pages if it isn't built.
+const WEB_DIR = path.join(ROOT, 'dist/web');
+const SPA_INDEX = fs.existsSync(path.join(WEB_DIR, 'index.html')) ? path.join(WEB_DIR, 'index.html') : null;
+function sendSpa(res, legacy) {
+  res.setHeader('Cache-Control', 'no-store');
+  if (SPA_INDEX) return res.type('html').send(fs.readFileSync(SPA_INDEX, 'utf8'));
+  res.type('html').send(fs.readFileSync(page(legacy || 'page.html'), 'utf8'));
+}
+app.use('/assets', express.static(path.join(WEB_DIR, 'assets'), { immutable: true, maxAge: '1y', fallthrough: false }));
+app.use('/landing', express.static(path.join(WEB_DIR, 'landing'), { maxAge: '7d', fallthrough: false }));
+for (const f of ['favicon.svg', 'icon.svg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'sw.js', 'manifest.webmanifest']) {
+  app.get(`/${f}`, (_req, res, next) => (fs.existsSync(path.join(WEB_DIR, f)) ? res.sendFile(path.join(WEB_DIR, f), { headers: { 'Cache-Control': f === 'sw.js' ? 'no-cache' : 'public, max-age=86400' } }) : next()));
+}
 const useLogin = () => MODE === 'supabase' && authEnabled();
 
 function requireDashboard(req, res, next) {
@@ -214,8 +289,7 @@ function requireDashboard(req, res, next) {
 app.get('/login', (req, res) => {
   if (!useLogin()) return res.redirect('/dashboard');
   if (sessionFrom(req)) return res.redirect(safeNext(req.query.next));
-  res.setHeader('Cache-Control', 'no-store');
-  res.type('html').send(fs.readFileSync(page('login.html'), 'utf8'));
+  sendSpa(res, 'login.html');
 });
 const safeNext = (n) => (typeof n === 'string' && /^\/(?!\/)/.test(n) ? n : '/dashboard');
 app.post('/api/auth/login', express.json({ limit: '8kb' }), async (req, res) => {
@@ -235,6 +309,39 @@ app.post('/api/auth/logout', (req, res) => {
   if (s && MODE === 'supabase') audit('auth.logout', { actor: s.email });
   res.json({ ok: true });
 });
+// "Continue with Google Workspace": OAuth (openid email) with the same Google client as Gmail/Chat.
+// Off unless GOOGLE_LOGIN_ENABLED=true, because the callback URL must first be added to the OAuth client.
+const googleLoginOn = () => useLogin() && process.env.GOOGLE_LOGIN_ENABLED === 'true' && Boolean(config.gmail.clientId && config.gmail.clientSecret);
+const googleRedirect = (req) => `${config.publicBaseUrl || `${req.protocol}://${req.get('host')}`}/api/auth/google/callback`;
+app.get('/api/auth/google/available', (_req, res) => res.json({ enabled: googleLoginOn() }));
+app.get('/api/auth/google', (req, res) => {
+  if (!googleLoginOn()) return res.redirect('/login?error=google_off');
+  const state = sign({ next: safeNext(req.query.next), nonce: crypto.randomBytes(12).toString('hex'), exp: Date.now() + 10 * 60_000 });
+  res.setHeader('Set-Cookie', `rr_gstate=${encodeURIComponent(state)}; HttpOnly; SameSite=Lax; Path=/api/auth/google; Max-Age=600${req.secure ? '; Secure' : ''}`);
+  const o = new google.auth.OAuth2(config.gmail.clientId, config.gmail.clientSecret, googleRedirect(req));
+  res.redirect(o.generateAuthUrl({ scope: ['openid', 'email'], state, prompt: 'select_account' }));
+});
+app.get('/api/auth/google/callback', async (req, res) => {
+  const cookie = (req.headers.cookie || '').split(/;\s*/).find((c) => c.startsWith('rr_gstate='))?.slice(10);
+  const st = verifyData(req.query.state);
+  if (!googleLoginOn() || !st || !cookie || decodeURIComponent(cookie) !== req.query.state) return res.redirect('/login?error=google_state');
+  try {
+    const o = new google.auth.OAuth2(config.gmail.clientId, config.gmail.clientSecret, googleRedirect(req));
+    const { tokens } = await o.getToken(String(req.query.code || ''));
+    const ticket = await o.verifyIdToken({ idToken: tokens.id_token, audience: config.gmail.clientId });
+    const p = ticket.getPayload();
+    if (!p?.email_verified || !isAllowedEmail(p.email)) {
+      audit('auth.login_failed', { actor: String(p?.email || 'unknown').slice(0, 120), details: { ip: req.ip, via: 'google' }, level: 'warn' });
+      return res.redirect('/login?error=google_denied');
+    }
+    setSession(res, req, p.email.toLowerCase());
+    audit('auth.login', { actor: p.email.toLowerCase(), details: { ip: req.ip, via: 'google' } });
+    res.redirect(st.next || '/dashboard');
+  } catch (e) {
+    console.warn('[auth:google]', e.message);
+    res.redirect('/login?error=google_failed');
+  }
+});
 app.get('/api/auth/me', requireDashboard, (req, res) => res.json({ email: req.user?.email || null, login: useLogin() }));
 
 app.get('/health', (_req, res) => res.json({ ok: true, mode: MODE, uptime: process.uptime() }));
@@ -246,14 +353,21 @@ app.get('/status', (req, res) => {
 
 const needsOnboarding = () => MODE === 'supabase' && (!registry.list().length || !settings.bot?.onboarded);
 
-app.get('/', (_req, res) => res.redirect('/dashboard'));
-app.get('/dashboard', requireDashboard, (_req, res) => {
+app.get('/', (_req, res) => (SPA_INDEX ? sendSpa(res) : res.redirect('/dashboard')));
+app.get(['/dashboard', '/dashboard/*'], requireDashboard, (_req, res) => {
   if (needsOnboarding()) return res.redirect('/onboarding');
-  res.setHeader('Cache-Control', 'no-store');
-  res.type('html').send(fs.readFileSync(page('page.html'), 'utf8'));
+  sendSpa(res, 'page.html');
 });
 app.get('/onboarding', requireDashboard, (_req, res) => {
   if (MODE !== 'supabase') return res.redirect('/dashboard');
+  sendSpa(res, 'onboarding.html');
+});
+// Previous single-file UI, kept as a fallback while the React UI settles.
+app.get('/classic', requireDashboard, (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.type('html').send(fs.readFileSync(page('page.html'), 'utf8'));
+});
+app.get('/classic/onboarding', requireDashboard, (_req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.type('html').send(fs.readFileSync(page('onboarding.html'), 'utf8'));
 });
@@ -261,15 +375,39 @@ app.get('/onboarding', requireDashboard, (_req, res) => {
 app.get('/api/dashboard', requireDashboard, (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.json({
-    ...buildDashboard(store.data, accounts(), { stuckHours: config.stuckHours }),
+    ...buildDashboard(store.data, accounts(), { stuckHours: config.stuckHours, intervals: { apple: config.applePollMs, play: config.playPollMs } }),
+    prefs: {
+      applePollMinutes: config.applePollMs / 60_000,
+      playPollMinutes: config.playPollMs / 60_000,
+      gmailPollMinutes: config.gmailPollMs / 60_000,
+      stuckHours: config.stuckHours,
+      silentFirstRun: config.silentFirstRun,
+      quietHours: config.quietHours || { enabled: false, start: '22:00', end: '08:00' },
+      mentionAll: Boolean(config.mentionAll),
+      chatEvents: config.chatEvents || { submitted: true, in_review: true, approved: true, rejected: true, live: true },
+      digestEnabled: Boolean(config.digestEnabled),
+      digestTime: config.digestTime,
+    },
+    chat: chatInfo(),
     tz: config.tz,
     demo: MODE === 'demo',
     mode: MODE,
-    admin: MODE === 'supabase',
+    admin: MODE === 'supabase' || MODE === 'demo',
     user: req.user?.email || null,
     gmail: { enabled: MODE === 'demo' || gmailEnabled(), lastPollAt: store.data.accounts.gmail?.lastPollAt || null, error: store.data.accounts.gmail?.error || null },
   });
 });
+function chatInfo() {
+  const space = config.chatSpaceLocked || settings.chat?.space || null;
+  const id = space ? space.replace(/^spaces\//, '') : null;
+  return {
+    mode: settings.chat?.mode || (config.chatWebhook ? 'webhook' : null),
+    spaceName: settings.chat?.displayName || settings.chat?.spaceName || space,
+    spaceUrl: id ? `https://chat.google.com/room/${id}` : null,
+    sender: settings.chat_user?.email || null,
+    locked: Boolean(config.chatSpaceLocked),
+  };
+}
 // Full Play Console email behind a status (dashboard → "View email"). Only emails the bot linked to an app.
 app.get('/api/email/:id', requireDashboard, async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -319,6 +457,9 @@ app.all('/api/cron/tick', async (req, res) => {
 if (MODE === 'supabase') {
   app.use('/api/admin', requireDashboard, adminRouter({ config, store, registry, tracker, settings, runPoll, gmailEnabled, isRunning }));
 }
+if (MODE === 'demo') app.use('/api/admin', requireDashboard, demoAdminRouter({ config, store }));
+// Endpoints used by the React UI (resolve / snooze, notification prefs, browser push).
+app.use('/api/ui', requireDashboard, uiRouter({ config, store, mode: MODE, settings, pushStore }));
 
 app.post(
   '/apple/webhook/:accountId',

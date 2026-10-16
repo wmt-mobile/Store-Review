@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+/* Design tokens from the pen.dev file (variables: bg, surface, text-*, status colours). */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+:root {
+  --bg: #EDEFE9;
+  --surface: #FFFFFF;
+  --surface-2: #F4F5F0;
+  --surface-3: #E7E9E2;
+  --text-primary: #0F110C;
+  --text-secondary: #61655C;
+  --text-tertiary: #999D92;
+  --border: #E3E5DD;
+  --primary: #0F110C;
+  --on-primary: #FFFFFF;
+  --accent: #C6F432;
+  --accent-ink: #0F110C;
+  --accent-soft: #F0FBCB;
+  --accent-text: #4F6B00;
+  --blue: #2563EB;
+  --blue-soft: #E7EEFF;
+  --amber: #B86E00;
+  --amber-soft: #FFF2D9;
+  --green: #15803D;
+  --green-soft: #E2F6E8;
+  --red: #D92D20;
+  --red-soft: #FDE9E7;
+  --grey: #61655C;
+  --grey-soft: #EEEFEA;
+  --scrim: rgba(15, 17, 12, 0.32);
+  color-scheme: light;
+}
+[data-theme=dark] {
+  --bg: #0C0D0A;
+  --surface: #171814;
+  --surface-2: #21221D;
+  --surface-3: #2C2E27;
+  --text-primary: #F2F3EE;
+  --text-secondary: #A2A699;
+  --text-tertiary: #6E7267;
+  --border: #2A2C25;
+  --primary: #F2F3EE;
+  --on-primary: #0F110C;
+  --accent-soft: #2A3410;
+  --accent-text: #C6F432;
+  --blue: #6E9BFF;
+  --blue-soft: #18233D;
+  --amber: #F5B23D;
+  --amber-soft: #352812;
+  --green: #4ADE80;
+  --green-soft: #13291B;
+  --red: #FF6B5E;
+  --red-soft: #3A1815;
+  --grey: #A2A699;
+  --grey-soft: #26271F;
+  --scrim: rgba(0, 0, 0, 0.55);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: Manrope, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-ink: var(--text-primary);
+  --color-ink-2: var(--text-secondary);
+  --color-ink-3: var(--text-tertiary);
+  --color-line: var(--border);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-text: var(--accent-text);
+  --color-blue: var(--blue);
+  --color-blue-soft: var(--blue-soft);
+  --color-amber: var(--amber);
+  --color-amber-soft: var(--amber-soft);
+  --color-green: var(--green);
+  --color-green-soft: var(--green-soft);
+  --color-red: var(--red);
+  --color-red-soft: var(--red-soft);
+  --color-grey: var(--grey);
+  --color-grey-soft: var(--grey-soft);
+  --color-scrim: var(--scrim);
+}
+
+@layer base {
+  html, body { background: var(--bg); color: var(--text-primary); }
+  body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+  [hidden] { display: none !important; }
+  button { cursor: pointer; }
+  button:disabled { cursor: not-allowed; }
+  :focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; border-radius: 8px; }
+}
+
+/* hatched fill used on chart bars and the login art */
+.hatch { background-image: repeating-linear-gradient(-60deg, currentColor 0 1.5px, transparent 1.5px 6px); }
+.skeleton { background: linear-gradient(90deg, var(--surface-2) 0%, var(--surface-3) 50%, var(--surface-2) 100%); background-size: 200% 100%; animation: sk 1.4s ease-in-out infinite; }
+@keyframes sk { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+.scroll-thin { scrollbar-width: thin; }

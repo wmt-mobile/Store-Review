@@ -13,7 +13,7 @@ import { describe, channelLabel } from './status-map.js';
 import { errText } from './util.js';
 
 export const BOT_NAME = 'app_review_bot';
-const PREF_KEYS = ['stuckHours', 'digestEnabled', 'digestTime', 'tz', 'applePollMinutes', 'playPollMinutes', 'gmailPollMinutes', 'silentFirstRun'];
+const PREF_KEYS = ['stuckHours', 'digestEnabled', 'digestTime', 'tz', 'applePollMinutes', 'playPollMinutes', 'gmailPollMinutes', 'silentFirstRun', 'quietHours', 'mentionAll', 'chatEvents'];
 
 export async function loadSettings(config, registry) {
   const rows = await db.select('settings');
@@ -69,6 +69,18 @@ export function applyPrefs(config, p = {}) {
   if (p.playPollMinutes) config.playPollMs = Number(p.playPollMinutes) * 60_000;
   if (p.gmailPollMinutes) config.gmailPollMs = Number(p.gmailPollMinutes) * 60_000;
   if (p.silentFirstRun !== undefined) config.silentFirstRun = Boolean(p.silentFirstRun);
+  if (p.quietHours !== undefined) config.quietHours = normQuiet(p.quietHours);
+  if (p.mentionAll !== undefined) config.mentionAll = Boolean(p.mentionAll);
+  if (p.chatEvents !== undefined) config.chatEvents = normChatEvents(p.chatEvents);
+}
+
+const CHAT_EVENTS = ['submitted', 'in_review', 'approved', 'rejected', 'live'];
+export const normChatEvents = (e) => Object.fromEntries(CHAT_EVENTS.map((k) => [k, e?.[k] !== false]));
+
+/** { enabled, start: 'HH:MM', end: 'HH:MM' } with sane defaults. */
+export function normQuiet(q) {
+  const hhmm = (v, d) => (/^([01]\d|2[0-3]):[0-5]\d$/.test(String(v || '')) ? String(v) : d);
+  return { enabled: Boolean(q?.enabled), start: hhmm(q?.start, '22:00'), end: hhmm(q?.end, '08:00') };
 }
 
 const maskUrl = (u) => (isSpaceTarget(u) ? u : u ? u.replace(/(key=)[^&]+/, '$1••••').replace(/(token=)[^&]+/, '$1••••') : '');
@@ -186,6 +198,18 @@ export function adminRouter(ctx) {
     if (!a) return res.status(404).json({ error: 'not found' });
     audit('account.updated', { actor: currentActor, target: a.name, details: req.body });
     res.json(accountState(a));
+  });
+
+  r.put('/accounts/:id/secret', async (req, res) => {
+    try {
+      const { account, verification } = await registry.replaceSecret(req.params.id, req.body || {});
+      if (!account) return res.status(400).json({ ok: false, steps: verification.steps, error: verification.steps?.find((s) => !s.ok)?.detail || 'Verification failed' });
+      audit('account.key_rotated', { actor: currentActor, target: account.name, details: { store: account.store }, level: 'warn' });
+      runPoll(account);
+      res.json({ ok: true, steps: verification.steps, account: accountState(account) });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: errText(e) });
+    }
   });
 
   r.delete('/accounts/:id', async (req, res) => {
@@ -354,6 +378,10 @@ export function adminRouter(ctx) {
     for (const k of PREF_KEYS) if (req.body?.[k] !== undefined) p[k] = req.body[k];
     if (p.stuckHours) p.stuckHours = Math.max(1, Math.min(720, Number(p.stuckHours)));
     if (p.digestTime && !/^\d{2}:\d{2}$/.test(p.digestTime)) return res.status(400).json({ error: 'digestTime must be HH:MM' });
+    for (const k of ['applePollMinutes', 'playPollMinutes', 'gmailPollMinutes']) if (p[k] !== undefined) p[k] = Math.max(1, Math.min(240, Number(p[k]) || 5));
+    if (p.quietHours !== undefined) p.quietHours = normQuiet(p.quietHours);
+    if (p.mentionAll !== undefined) p.mentionAll = Boolean(p.mentionAll);
+    if (p.chatEvents !== undefined) p.chatEvents = normChatEvents(p.chatEvents);
     await db.upsert('settings', [{ key: 'prefs', value: p }], 'key', { returning: false });
     settings.prefs = p;
     applyPrefs(config, p);
@@ -406,7 +434,7 @@ export function adminRouter(ctx) {
   });
 
   r.get('/gmail/connect', (req, res) => {
-    if (!config.gmail.clientId) return res.redirect('/dashboard#/setup');
+    if (!config.gmail.clientId) return res.redirect('/dashboard/setup');
     const state = signData({ kind: 'gmail', n: crypto.randomBytes(8).toString('hex'), exp: Date.now() + 15 * 60_000 });
     const oauth = new google.auth.OAuth2(config.gmail.clientId, config.gmail.clientSecret, redirectUri(req));
     res.redirect(oauth.generateAuthUrl({
@@ -418,7 +446,7 @@ export function adminRouter(ctx) {
   });
 
   r.get('/gmail/callback', async (req, res) => {
-    const back = (q) => res.redirect(`/dashboard#/setup?gmail=${encodeURIComponent(q)}`);
+    const back = (q) => res.redirect(`/dashboard/setup?gmail=${encodeURIComponent(q)}`);
     const st = verifyData(req.query.state);
     if (!st) return back('error:Sign-in expired, try again');
     if (st.kind === 'chat') return chatCallback(req, res);
@@ -471,7 +499,7 @@ export function adminRouter(ctx) {
 
   // ── Google Chat: "post as me" (user OAuth, no Chat app install needed) ──
   r.get('/chat/user/connect', (req, res) => {
-    if (!config.gmail.clientId) return res.redirect('/dashboard#/setup?chat=' + encodeURIComponent('error:Save the Google OAuth client first (Play email reader, step 1)'));
+    if (!config.gmail.clientId) return res.redirect('/dashboard/setup?chat=' + encodeURIComponent('error:Save the Google OAuth client first (Play email reader, step 1)'));
     const state = signData({ kind: 'chat', n: crypto.randomBytes(8).toString('hex'), exp: Date.now() + 15 * 60_000 });
     const oauth = new google.auth.OAuth2(config.gmail.clientId, config.gmail.clientSecret, redirectUri(req));
     res.redirect(oauth.generateAuthUrl({
@@ -483,7 +511,7 @@ export function adminRouter(ctx) {
   });
 
   async function chatCallback(req, res) {
-    const back = (q) => res.redirect(`/dashboard#/setup?chat=${encodeURIComponent(q)}`);
+    const back = (q) => res.redirect(`/dashboard/setup?chat=${encodeURIComponent(q)}`);
     if (req.query.error) return back(`error:${req.query.error}`);
     try {
       const oauth = new google.auth.OAuth2(config.gmail.clientId, config.gmail.clientSecret, redirectUri(req));

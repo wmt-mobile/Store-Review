@@ -146,6 +146,9 @@ export class Tracker {
     if (notify && from && from.category === to.category && from.label === to.label && !versionChanged) notify = false;
     if (app.hidden || app.muted) notify = false;
     if (!NOTIFY_CHANNELS.has(channel) || SILENT_CATEGORIES.has(to.category)) notify = false;
+    // Onboarding step 3 "Post these events" (prefs.chatEvents); every event posts unless switched off.
+    const evKey = { submitted: 'submitted', in_review: 'in_review', approved: 'approved', live: 'live', rejected: 'rejected', action: 'rejected', removed: 'rejected' }[to.category];
+    if (notify && evKey && this.config.chatEvents?.[evKey] === false) notify = false;
 
     this.store.save();
     this.onEvent('status', { app, channel, version, from: prev?.status || null, to: status, reason: reason || null, notify });
@@ -166,8 +169,30 @@ export class Tracker {
       reason: chans[channel].reason,
       links: [...consoleLinks(app, account, channel), ...(extra?.emailUrl ? [{ text: 'Open email', url: extra.emailUrl }] : [])],
     });
-    await this.send(card, { webhook: app.chatWebhook || this.config.chatWebhook, threadKey });
+    const target = { webhook: app.chatWebhook || this.config.chatWebhook, threadKey };
+    if (isQuiet(this.config, at) && !['rejected', 'action', 'removed'].includes(to.category)) {
+      // Quiet hours: hold non-critical posts, sent in order once the window ends (flushHeld).
+      (this.d.meta.held ||= []).push({ card, target, at });
+      this.store.save();
+      return { changed: true, notified: false, held: true };
+    }
+    await this.send(card, target);
     return { changed: true, notified: true };
+  }
+
+  /** Post messages held during quiet hours (oldest first). */
+  async flushHeld(now = Date.now()) {
+    const held = this.d.meta.held || [];
+    if (!held.length || isQuiet(this.config, now)) return 0;
+    let sent = 0;
+    while (held.length) {
+      const h = held[0];
+      await this.send(h.card, h.target);
+      held.shift();
+      sent++;
+      this.store.save();
+    }
+    return sent;
   }
 
   /** A store email we couldn't map to a status. Chat only gets release status messages, so this is just recorded. */
@@ -203,4 +228,14 @@ export class Tracker {
     this.onEvent('error', { accountId, context, message: msg });
   }
 
+}
+
+/** True inside the quiet-hours window (prefs.quietHours, display time zone; the window may cross midnight). */
+export function isQuiet(config, at = Date.now()) {
+  const q = config.quietHours;
+  if (!q?.enabled) return false;
+  const hm = new Intl.DateTimeFormat('en-GB', { timeZone: config.tz || 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false }).format(at);
+  const toMin = (t) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+  const n = toMin(hm), a = toMin(q.start || '22:00'), b = toMin(q.end || '08:00');
+  return a <= b ? n >= a && n < b : n >= a || n < b;
 }

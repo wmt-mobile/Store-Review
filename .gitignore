@@ -16,3 +16,5 @@ client_secret_*.json
 .vercel
 .env*
 !.env.example
+design/html/
+dist/

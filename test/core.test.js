@@ -256,7 +256,7 @@ test('cards become readable Chat text for "post as me"', async () => {
   const { describe: d } = await import('../src/status-map.js');
   const t = cardToText(statusCard({ app: { name: 'Telfon', store: 'apple', accountId: 'a' }, account: { name: 'WebMob' }, channel: 'appstore', version: '2.0', from: d('apple', 'appstore', 'WAITING_FOR_REVIEW'), to: d('apple', 'appstore', 'IN_REVIEW'), at: Date.now(), links: [{ text: 'Open App Store Connect', url: 'https://appstoreconnect.apple.com' }] }));
   assert.match(t, /^🤖 \*app_review_bot\*/);
-  assert.match(t, /\*🔍 In review\*/);
+  assert.match(t, /\*🔎 In review\*/);
   assert.match(t, /<https:\/\/appstoreconnect\.apple\.com\|Open App Store Connect>/);
   assert.doesNotMatch(t, /<b>|<\/b>/);
 });
@@ -268,8 +268,7 @@ test('versions read as "name (build)" in Chat', async () => {
   assert.equal(displayVersion('apple', '1.0.55', { build: '12' }), '1.0.55 (12)');
   assert.equal(displayVersion('apple', '1.0.55'), '1.0.55');
   const c = statusCard({ app: { name: 'Telfon', store: 'google', accountId: 'a' }, channel: 'production', version: '193 (1.3.80)', to: { emoji: '📤', label: 'Sent to Google', category: 'submitted' }, at: Date.now() });
-  assert.match(c.chatText, /^📤 {2}\*SENT TO GOOGLE\*\n\n\*Telfon\*\n\n/);
-  assert.match(c.chatText, /Version:\*  1\.3\.80 \(193\)/);
+  assert.match(c.chatText, /^📨 {2}\*Sent for review\*\nTelfon · Google Play\n\n📦 {2}\*Version\*\n1\.3\.80 \(193\)/);
 });
 
 test('AI rejection summary is parsed into title / issues / fixes / deadline', async () => {
@@ -289,7 +288,8 @@ test('rejection Chat message carries the AI summary and the full email', async (
   const c = statusCard({ app: { name: 'Telfon', store: 'google', accountId: 'a' }, channel: 'production', version: '193 (1.3.80)', at: Date.now(),
     from: describe('google', 'production', 'SENT_FOR_REVIEW'), to: describe('google', 'production', 'REJECTED'),
     extra: { ai: { title: 'Permission issue', issues: ['A'], fixes: ['B'], deadline: '' }, mailText: 'x'.repeat(9000), mailSubject: 'Rejected' } });
-  assert.match(c.chatText, /🚫 {2}\*Permission issue\*/);
+  assert.match(c.chatText, /^🚫 {2}\*Rejected\*\nTelfon · Google Play · 1\.3\.80 \(193\)/);
+  assert.match(c.chatText, /🚫 {2}\*Issue\*\nPermission issue/);
   assert.match(c.chatText, /📧 {2}\*Full email\*/);
   assert.ok(c.chatText.length <= 4096, `fits one Chat message (${c.chatText.length})`);
 });
@@ -318,4 +318,27 @@ test('play: release lifecycle state drives the production status', async () => {
   assert.equal(lifecycleStatus(rel('PUBLISHED'), { ...next, extra: { ...next.extra, releaseStatus: 'inProgress' } }), 'ROLLOUT');
   assert.equal(lifecycleStatus(rel('DRAFT'), next), null);
   assert.equal(lifecycleStatus([], next), null);
+});
+
+test('approved Chat message follows the card kit: version · track, review took, account, publish link', async () => {
+  const { statusCard } = await import('../src/chat.js');
+  const { describe } = await import('../src/status-map.js');
+  const at = Date.now();
+  const c = statusCard({ app: { name: 'Telfon - Calls & Chats', store: 'google', accountId: 'a', key: 'google:a:com.x' }, account: { name: 'WebMobTechnologies' }, channel: 'production', version: '193 (1.3.80)', at, submittedAt: at - (6 * 60 + 40) * 60_000,
+    from: describe('google', 'production', 'IN_REVIEW'), to: describe('google', 'production', 'READY_TO_PUBLISH'), links: [{ text: 'Open Play Console', url: 'https://play.google.com/console' }] });
+  assert.match(c.chatText, /^☑️ {2}\*Approved · ready to publish\*\nTelfon - Calls & Chats · Google Play\n/);
+  assert.match(c.chatText, /📦 {2}\*Version\*\n1\.3\.80 \(193\) · Production track/);
+  assert.match(c.chatText, /⏱️ {2}\*Review took\*\n6h 40m · from In review/);
+  assert.match(c.chatText, /💼 {2}\*Account\*\nWebMobTechnologies/);
+  assert.match(c.chatText, /<https:\/\/play\.google\.com\/console\|Publish in Play Console ↗>/);
+  assert.equal(c.cardsV2[0].card.header.title, '☑️ Approved · ready to publish');
+});
+
+test('quiet hours window crosses midnight in the display time zone', async () => {
+  const { isQuiet } = await import('../src/tracker.js');
+  const cfg = { tz: 'UTC', quietHours: { enabled: true, start: '22:00', end: '08:00' } };
+  assert.equal(isQuiet(cfg, Date.parse('2026-10-16T23:30:00Z')), true);
+  assert.equal(isQuiet(cfg, Date.parse('2026-10-16T07:59:00Z')), true);
+  assert.equal(isQuiet(cfg, Date.parse('2026-10-16T08:00:00Z')), false);
+  assert.equal(isQuiet({ ...cfg, quietHours: { enabled: false } }, Date.parse('2026-10-16T23:30:00Z')), false);
 });

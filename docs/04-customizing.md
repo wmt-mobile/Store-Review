@@ -16,8 +16,9 @@ All templates are in **`src/chat.js`**, plus the "connected" message in `src/adm
 
 | Message | Function | What to edit |
 |---|---|---|
-| Store status change | `statusCard()` in `src/chat.js` | The `lines` array: headline, app name, 📱 Store / 🏷️ Version / 🔄 Status, 📝 reason, 🏢/🕒/🔗 footer |
-| "What to do next" line per status | `NEXT_STEP` in `src/chat.js` | One line per category (`submitted`, `in_review`, `approved`, `live`, `rejected`, `action`, `removed`, `draft`, `testing`) |
+| Store status change | `statusCard()` in `src/chat.js` | Follows the design's "Google Chat card kit": headline (`HEADLINE`: 📨 Sent for review, 🔎 In review, ☑️ Approved · ready to publish, 🚀 Live · staged rollout, 🚫 Rejected), "app · store" line, label/value rows (📦 Version, ⏱️ Review took, 🕒 Waited, 🔁 From, 📈 Rollout, 💼 Account), ✨ AI summary for rejections, then the action links (Publish in Play Console / Open in Review Radar / View email / Mark resolved) and the full email |
+| Links into the dashboard | `radarLink()` in `src/chat.js` | Uses `PUBLIC_BASE_URL`; `/dashboard/apps?app=…` opens the app drawer, `/dashboard/attention?email=…` opens the email, `?resolve=…` marks it resolved |
+| @all on rejections | `prefs.mentionAll` (Setup → Google Chat) | Adds `<users/all> Rejection on … — summary below 👇` above rejection messages |
 | Other Google Play email | `storeMessageCard()` | The `t` array |
 | Sync problem alert | `alertCard()` (called from `reportError()` in `src/tracker.js`) | `chatText` and the `hint` text |
 | "Connected" test message | `helloText()` in `src/admin-api.js` | The list of lines |
@@ -97,22 +98,27 @@ When Google changes its wording:
 ---
 
 ## Dashboard and admin UI
-These are plain HTML + JavaScript files with no build step. Edit them and refresh.
+The UI is a React + Tailwind app in `web/` (Vite). Run the API in demo mode and `bun run dev:web` for hot reload; `bun run build` before deploying (Vercel runs it automatically).
 
 | Screen | File |
 |---|---|
-| Login | `src/dashboard/login.html` |
-| Onboarding wizard | `src/dashboard/onboarding.html` |
-| Dashboard + Admin (Setup, Manage apps, Audit log) | `src/dashboard/page.html`; views are the `vOverview`, `vReview`, `vAttention`, `vApps`, `vAccounts`, `vActivity`, `vSetup`, `vManage`, `vAudit` functions |
+| Login · Onboarding · Landing (`/`) | `web/src/pages/Login.jsx`, `Onboarding.jsx`, `Landing.jsx` |
+| Overview | `web/src/pages/Overview.jsx` (+ `pages/overview/`) |
+| In review · Apps · Needs attention | `web/src/pages/InReview.jsx`, `Apps.jsx`, `Attention.jsx` |
+| Accounts · Activity | `web/src/pages/Accounts.jsx`, `Activity.jsx` |
+| Admin: Setup · Manage apps · Audit log | `web/src/pages/Setup.jsx`, `Manage.jsx`, `Audit.jsx` |
+| Notification settings | `web/src/pages/NotificationSettings.jsx` |
+| App drawer · email modal · bell panel · Ctrl K · toasts | `web/src/components/` |
+| Sidebar, top bar, tablet rail, phone tabs | `web/src/layout/Shell.jsx` |
+| Colours, fonts (design tokens, light + dark) | `web/src/index.css` |
+| Status wording / pill colours | `web/src/lib/model.js` (`LABELS`, `TONE`) |
 | Data behind the dashboard | `src/dashboard/view.js` (`buildDashboard`) |
 
-Colours are CSS variables at the top of each HTML file, with separate light and dark values (`--c-in_review`, `--b-rejected`, …).
-
----
+Design reference: `design/screens/<frame>.webp` and `design/clean/<frame>.html` (exported from the pen.dev file; see `design/README.md`).
 
 ## Adding a new admin setting
 1. Add the key to `PREF_KEYS` in `src/admin-api.js`, and apply it in `applyPrefs()`.
-2. Add a row in `vSetup()` in `page.html`, using the `data-a-pref="yourKey"` input. It saves automatically.
+2. Add a control in `web/src/pages/Setup.jsx` and include the key in the prefs saved with `PUT /api/admin/settings/prefs`. Return it in `prefs` from `/api/dashboard` (`src/app.js`) so screens can read it.
 3. Read it from `config.*` where it's needed.
 
 ---

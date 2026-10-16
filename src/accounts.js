@@ -201,6 +201,32 @@ export class AccountRegistry {
     return a;
   }
 
+  /** Rotate the key (Apple .p8 + ids) or service-account JSON. Verifies first; keeps the old key on failure. */
+  async replaceSecret(id, input) {
+    const a = this.get(id);
+    if (!a) return { account: null, verification: { ok: false, steps: [{ label: 'Find account', ok: false, detail: 'not found' }] } };
+    const [row] = await db.select('accounts', { id: `eq.${id}` });
+    let verification;
+    let config;
+    let secret;
+    if (a.store === 'apple') {
+      const merged = { keyId: input.keyId?.trim() || a.keyId, issuerId: input.issuerId?.trim() || a.issuerId, privateKey: input.privateKey };
+      verification = await verifyApple(merged);
+      config = { ...row.config, keyId: merged.keyId, issuerId: merged.issuerId };
+      secret = merged.privateKey?.trim();
+    } else {
+      verification = await verifyGoogle(input);
+      config = { ...row.config, clientEmail: verification.sa?.client_email };
+      secret = verification.sa ? JSON.stringify(verification.sa) : null;
+    }
+    if (!verification.ok) return { account: null, verification };
+    const [updated] = await db.update('accounts', { id: `eq.${id}` }, { config, secret_enc: encrypt(secret), status: 'verified', error: null, error_at: null });
+    Object.assign(a, this.fromRow(updated));
+    resetAppleClient(id);
+    resetPlayClient(id);
+    return { account: a, verification };
+  }
+
   async remove(id) {
     await db.delete('accounts', { id: `eq.${id}` });
     this.items = this.items.filter((a) => a.id !== id);

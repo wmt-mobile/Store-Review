@@ -25,10 +25,11 @@ Real-time **App Store, TestFlight and Google Play** review status for every WebM
   - Needs attention: rejections and policy issues, with reasons.
   - All apps, Activity.
   - Admin → Setup, Manage apps, Audit log.
-- **Login:** email and password via Supabase Auth. Only emails listed in `AUTH_ALLOWED_EMAILS` can sign in. The session is a signed, HttpOnly cookie that lasts 7 days.
+- **Login:** email and password via Supabase Auth (optionally "Continue with Google Workspace"). Only emails listed in `AUTH_ALLOWED_EMAILS` can sign in. The session is a signed, HttpOnly cookie that lasts 7 days.
+- **Notifications:** a notification centre (bell), toasts while the dashboard is open, and optional **browser push** (approvals, rejections, stuck builds) per user — Settings → Notifications.
 
 ## Stack
-- **Node 20 + Express**, no build step. The UI is plain HTML and JavaScript in `src/dashboard/`.
+- **Node 20 + Express** API, and a **React 18 + Tailwind CSS 4** UI in `web/` (built with Vite into `dist/web`, served by Express). The design source is the pen.dev file exported to `design/`.
 - **Supabase (Postgres):**
   - Tables: accounts, apps, channel_states, status_events, seen_events, settings, audit_log.
   - RLS is on with no policies, so only the server, using the service-role key, can read or write.
@@ -57,7 +58,11 @@ Copy `.env.example` to `.env`. On Vercel, set the same variables in Project → 
 ```bash
 bun install
 cp .env.example .env      # fill in
+bun run build             # builds the React UI into dist/web
 bun start                 # http://localhost:8080 → login
+# UI development with hot reload (API on 8091 in demo mode):
+DEMO_DATA=true NO_SCHEDULER=true PORT=8091 DASHBOARD_TOKEN= node src/index.js &
+bun run dev:web           # http://localhost:5173/dashboard
 bun run test              # node --test
 ```
 Locally, the built-in scheduler polls on its own. Set `NO_SCHEDULER=true` if the cron endpoint drives polling instead. **Don't run a local scheduler and Vercel at the same time**, or every update is posted twice.
@@ -96,6 +101,10 @@ src/accounts.js         encrypted accounts, live key verification
 src/tracker.js          change detection, de-dupe, notifications
 src/chat.js             Google Chat (user OAuth / Chat app / webhook)
 src/apple/*, src/google/*   store pollers, Gmail reader + parser
-src/dashboard/*.html    login, onboarding, dashboard UI
+src/dashboard/view.js   data model behind /api/dashboard
+src/dashboard/*.html    previous single-file UI (still at /classic)
+src/ui-api.js, src/push.js   resolve/snooze, notification prefs, browser push
+web/                    React + Tailwind UI (pages/, components/, layout/, lib/)
+design/                 pen.dev design reference (screens/ screenshots, clean/ Tailwind exports)
 test/core.test.js       node --test
 ```

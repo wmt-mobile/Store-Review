@@ -7,7 +7,6 @@ import { fmtDuration, fmtTime, errText, displayVersion } from './util.js';
 export { displayVersion };
 import { channelLabel } from './status-map.js';
 
-const STORE_NAME = { apple: 'App Store Connect', google: 'Google Play' };
 
 const CHAT_BOT_SCOPE = ['https://www.googleapis.com/auth/chat.bot'];
 let chatApp = null;
@@ -135,64 +134,103 @@ export async function sendToChat(message, { webhook = config.chatWebhook, sa } =
 // ── Google Chat text layout (used when posting as a user; cards aren't allowed there) ──
 const clean = (t) => String(t ?? '').replace(/[*_~`]/g, (c) => c); // keep text as-is (Chat only formats paired markers)
 const box = (t, max = 900) => '```\n' + String(t).trim().slice(0, max).replace(/```/g, "'''") + '\n```';
-const NEXT_STEP = {
-  submitted: '⏳ Waiting for the review to start',
-  in_review: '👀 Review in progress',
-  approved: '👉 Approved — ready for you to release',
-  live: '🎉 Live — available to users now',
-  rejected: '👉 Action needed — fix the issue and resubmit',
-  action: '👉 Action needed in the console',
-  removed: '👉 Action needed — the app is no longer available',
-  draft: '📝 Not submitted yet',
-  testing: '🧪 Available to internal testers',
-};
 
 const CHAT_LIMIT = 4000;
 
-const kv = (label, text) => ({ decoratedText: { topLabel: label, text: String(text), wrapText: true } });
+const kv = (label, text, icon) => ({ decoratedText: { topLabel: label, text: String(text), wrapText: true, ...(icon ? { startIcon: { materialIcon: { name: icon } } } : {}) } });
 
-/** Card for one status change. */
+// Headline per status, matching the "Google Chat card kit" in the design.
+const HEADLINE = {
+  submitted: { emoji: '📨', title: () => 'Sent for review' },
+  in_review: { emoji: '🔎', title: () => 'In review' },
+  approved: { emoji: '☑️', title: (to) => (/release|publish|pending/i.test(to.label) || to.label === 'Approved' ? 'Approved · ready to publish' : to.label) },
+  live: { emoji: '🚀', title: (to, extra) => (extra?.userFraction != null && extra.userFraction < 1 ? `Live · staged rollout ${Math.round(extra.userFraction * 100)}%` : 'Live') },
+  rejected: { emoji: '🚫', title: (to) => (to.label === 'Rejected' ? 'Rejected' : `Rejected · ${to.label.replace(/ rejected$/i, '')}`) },
+  action: { emoji: '🚫', title: (to) => (/policy/i.test(to.label) ? 'Rejected · Policy action' : to.label) },
+  removed: { emoji: '⛔', title: (to) => to.label },
+};
+
+const normName = (n) => String(n || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+/** Deep link into the dashboard (drawer for this app). */
+export function radarLink(app, path = '/dashboard/apps', params = {}) {
+  const base = config.publicBaseUrl;
+  if (!base) return null;
+  const q = new URLSearchParams({ app: normName(app.name), store: app.store, ...params });
+  return `${base}${path}?${q}`;
+}
+
+/** "Oct 23, 2026 · 7 days left" when the deadline parses as a date. */
+function deadlineText(d, now = Date.now()) {
+  const t = Date.parse(String(d || '').replace(/(\d+)(st|nd|rd|th)/, '$1'));
+  if (!isFinite(t)) return d;
+  const days = Math.ceil((t - now) / 86_400_000);
+  return days >= 0 ? `${d} · ${days} day${days === 1 ? '' : 's'} left` : `${d} · overdue`;
+}
+
+/** Card for one status change (cardsV2 for a Chat app / webhook, `chatText` for "post as me"). */
 export function statusCard({ app, account, channel, version, extra, from, to, at, submittedAt, reason, links = [] }) {
   const ver = displayVersion(app.store, version, extra);
-  const widgets = [
-    kv('Status', from ? `${from.emoji} ${from.label}  →  <b>${to.emoji} ${to.label}</b>` : `<b>${to.emoji} ${to.label}</b>`),
-    kv('Version', ver),
-  ];
-  widgets.push(kv('Account', account?.name || app.accountId));
-  widgets.push(kv('Time', fmtTime(at)));
-  const aiSum = ['rejected', 'action', 'removed'].includes(to.category) ? extra?.ai : null;
-  if (aiSum) widgets.push({ textParagraph: { text: `<b>${escapeHtml(aiSum.title || 'Summary')}</b><br>${[...(aiSum.issues || []), ...(aiSum.fixes || []).map((f) => '→ ' + f)].map(escapeHtml).join('<br>')}` } });
-  if (reason) widgets.push({ textParagraph: { text: `<b>Reason</b><br>${escapeHtml(reason).slice(0, 3500)}` } });
-
-  const buttons = links.filter((l) => l?.url).map((l) => ({ text: l.text, onClick: { openLink: { url: l.url } } }));
-  const sections = [{ widgets }];
-  if (buttons.length) sections.push({ widgets: [{ buttonList: { buttons } }] });
-
-  const store = app.store === 'google' ? `Google Play · ${channelLabel(channel)}` : channelLabel(channel);
-  const lines = [
-    `${to.emoji}  *${to.label.toUpperCase()}*`,
-    '',
-    `*${clean(app.name)}*`,
-    '',
-    `📱  *Store:*  ${store}`,
-    `🏷️  *Version:*  ${clean(ver)}`,
-  ];
-  if (from && from.label !== to.label) lines.push(`🔄  *Status:*  ${from.label}  →  *${to.label}*`);
-  else lines.push(`🔄  *Status:*  *${to.label}*`);
+  const storeName = app.store === 'google' ? 'Google Play' : 'App Store';
+  const track = app.store === 'google' ? (channel === 'production' ? 'Production track' : channelLabel(channel)) : null;
+  const h = HEADLINE[to.category] || { emoji: to.emoji, title: () => to.label };
+  const title = h.title(to, extra);
   const bad = ['rejected', 'action', 'removed'].includes(to.category);
   const ai = bad ? extra?.ai : null;
   const mailText = bad ? extra?.mailText : null;
+  const took = submittedAt && at ? fmtDuration(at - submittedAt) : null;
+
+  // label/value rows, same order as the design cards
+  const rows = [];
+  const add = (icon, label, value, material) => value && rows.push({ icon, label, value, material });
+  if (to.category === 'live') {
+    add('📦', 'Version', `${ver}${app.store === 'google' ? ` · ${channel === 'production' ? 'Production' : channelLabel(channel)}` : ''}`, 'inventory_2');
+    if (extra?.userFraction != null && extra.userFraction < 1) add('📈', 'Rollout', `${Math.round(extra.userFraction * 100)}% of users · started ${fmtTime(at).split(', ').pop()}`, 'trending_up');
+  } else if (to.category === 'approved') {
+    add('📦', 'Version', track ? `${ver} · ${track}` : ver, 'inventory_2');
+    add('⏱️', 'Review took', took && `${took}${from ? ` · from ${from.label}` : ''}`, 'timer');
+    add('💼', 'Account', account?.name || app.accountId, 'account_balance_wallet');
+  } else if (to.category === 'in_review') {
+    add('📦', 'Version', ver, 'inventory_2');
+    add('🕒', 'Waited', took && `${took}${from ? ` · from ${from.label}` : ''}`, 'schedule');
+  } else if (to.category === 'submitted') {
+    add('📦', 'Version', ver, 'inventory_2');
+    add('🔁', 'From', from && from.label !== to.label ? from.label : null, 'swap_horiz');
+  } else if (!bad) {
+    add('📦', 'Version', ver, 'inventory_2');
+    add('🔁', 'Status', from && from.label !== to.label ? `${from.label} → ${to.label}` : to.label, 'swap_horiz');
+  }
+
+  // buttons: console action first, then Review Radar
+  const consoleLink = links.find((l) => l?.url && /console|connect/i.test(l.text));
+  const btns = [];
+  if (consoleLink) {
+    const text = to.category === 'approved'
+      ? (app.store === 'google' ? 'Publish in Play Console' : 'Release in App Store Connect')
+      : to.category === 'live' && app.store === 'google' ? 'View in Play Console' : consoleLink.text;
+    btns.push({ text, url: consoleLink.url });
+  }
+  if (bad && extra?.messageId) { const u = radarLink(app, '/dashboard/attention', { email: extra.messageId }); if (u) btns.unshift({ text: 'View email', url: u }); }
+  const radar = radarLink(app, bad ? '/dashboard/attention' : '/dashboard/apps');
+  if (radar) btns.push({ text: 'Open in Review Radar', url: radar });
+  if (bad && radar) btns.push({ text: 'Mark resolved', url: radarLink(app, '/dashboard/attention', { resolve: `${app.key || ''}|${channel}|${version || ''}` }) });
+  for (const l of links) if (l?.url && l !== consoleLink && !btns.some((b) => b.url === l.url)) btns.push({ text: l.text, url: l.url });
+  // rejections: View email · Open in Review Radar · Mark resolved (console link only when there's no dashboard URL)
+  if (bad && radar) btns.splice(btns.findIndex((b) => b.url === consoleLink?.url) >>> 0, consoleLink ? 1 : 0);
+
+  // ── text version (posting as a user: Chat does not allow cards there) ──
+  const lines = [];
+  if (bad && config.mentionAll) lines.push(`<users/all> Rejection on ${storeName} — summary below 👇`, '');
+  lines.push(`${h.emoji}  *${title}*`, `${clean(app.name)} · ${storeName}${bad ? ` · ${clean(ver)}` : ''}`);
+  for (const r of rows) lines.push('', `${r.icon}  *${r.label}*`, clean(r.value));
   if (ai) {
-    if (ai.title) lines.push('', `🚫  *${clean(ai.title)}*`);
-    if (ai.issues?.length) lines.push('', "🔎  *What's wrong*", ...ai.issues.map((x) => `•  ${clean(x)}`));
-    if (ai.fixes?.length) lines.push('', '🛠️  *How to fix*', ...ai.fixes.map((x) => `•  ${clean(x)}`));
-    if (ai.deadline) lines.push('', `⏰  *Deadline:*  ${clean(ai.deadline)}`);
-  } else if (reason && !mailText) lines.push('', '📝  *Reason*', box(reason));
+    lines.push('', '✨  *AI summary*');
+    if (ai.title) lines.push('', '🚫  *Issue*', clean(ai.title));
+    if (ai.issues?.length) lines.push('', "🔍  *What's wrong*", ...ai.issues.map((x) => clean(x)));
+    if (ai.fixes?.length) lines.push('', '🛠️  *How to fix*', ...ai.fixes.map((x) => clean(x)));
+    if (ai.deadline) lines.push('', '⏰  *Deadline*', clean(deadlineText(ai.deadline)));
+  } else if (bad && reason && !mailText) lines.push('', '📝  *Reason*', box(reason));
   const tail = [];
-  if (NEXT_STEP[to.category]) tail.push('', NEXT_STEP[to.category]);
-  tail.push('', `🏢  ${clean(account?.name || app.accountId)}`, `🕒  ${fmtTime(at)}`);
-  const lk = links.filter((l) => l?.url).map((l) => `<${l.url}|${l.text} ↗>`);
-  if (lk.length) tail.push('', `🔗  ${lk.join('   ·   ')}`);
+  if (btns.length) tail.push('', btns.map((b) => `<${b.url}|${b.text} ↗>`).join('   ·   '));
   if (mailText) {
     // Full email, trimmed to what fits in one Chat message (4096 chars).
     const head = ['', `📧  *Full email*${extra.mailSubject ? `  —  ${clean(extra.mailSubject)}` : ''}`];
@@ -200,16 +238,31 @@ export function statusCard({ app, account, channel, version, extra, from, to, at
     if (room > 200) lines.push(...head, box(mailText.length > room ? mailText.slice(0, room).trimEnd() + '\n… (open the email for the rest)' : mailText, room + 60));
   }
   lines.push(...tail);
+
+  // ── card version (Chat app / webhook) ──
+  const widgets = rows.map((r) => kv(r.label, escapeHtml(r.value), r.material));
+  const sections = [{ widgets }];
+  if (ai) {
+    const aiw = [];
+    if (ai.title) aiw.push(kv('Issue', escapeHtml(ai.title), 'block'));
+    if (ai.issues?.length) aiw.push(kv("What's wrong", ai.issues.map(escapeHtml).join('<br>'), 'search'));
+    if (ai.fixes?.length) aiw.push(kv('How to fix', ai.fixes.map(escapeHtml).join('<br>'), 'build'));
+    if (ai.deadline) aiw.push(kv('Deadline', `<font color="#D92D20">${escapeHtml(deadlineText(ai.deadline))}</font>`, 'alarm'));
+    sections.push({ header: 'AI summary', widgets: aiw });
+  } else if (bad && reason) sections.push({ widgets: [{ textParagraph: { text: `<b>Reason</b><br>${escapeHtml(reason).slice(0, 3500)}` } }] });
+  if (btns.length) sections.push({ widgets: [{ buttonList: { buttons: btns.slice(0, 4).map((b, i) => ({ text: b.text, onClick: { openLink: { url: b.url } }, ...(i === 0 ? { color: { red: 0.04, green: 0.34, blue: 0.82, alpha: 1 } } : {}) })) } }] });
+  if (!widgets.length) sections.shift();
+
   return {
-    text: `${to.emoji} ${app.name} ${ver} – ${to.label}`,
+    text: `${h.emoji} ${title} · ${app.name} ${ver}`,
     chatText: lines.join('\n'),
     cardsV2: [
       {
         cardId: `status-${Date.now()}`,
         card: {
           header: {
-            title: `${to.emoji} ${app.name}`,
-            subtitle: `${STORE_NAME[app.store]} · ${channelLabel(channel)}`,
+            title: `${h.emoji} ${title}`,
+            subtitle: `${app.name} · ${storeName}${bad ? ` · ${ver}` : ''}`,
             imageUrl: app.iconUrl || undefined,
             imageType: 'SQUARE',
           },
