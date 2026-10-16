@@ -15,9 +15,9 @@
     "gmail:auth": "node scripts/gmail-auth.js",
     "apple:webhooks": "node scripts/register-apple-webhooks.js",
     "test": "node --test test/*.test.js",
-    "build": "vite build",
+    "build": "vite build && node scripts/embed-spa.mjs",
     "dev:web": "vite",
-    "vercel-build": "vite build"
+    "vercel-build": "vite build && node scripts/embed-spa.mjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "2.1.7",

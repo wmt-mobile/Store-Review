@@ -250,19 +250,18 @@ const cookieToken = (req) => (req.headers.cookie || '').split(/;\s*/).find((c) =
 
 const page = (f) => path.join(ROOT, 'src/dashboard', f);
 
-// React UI (web/ → dist/web via `bun run build`). Falls back to the old single-file pages if it isn't built.
-const WEB_DIR = path.join(ROOT, 'dist/web');
-const SPA_INDEX = fs.existsSync(path.join(WEB_DIR, 'index.html')) ? path.join(WEB_DIR, 'index.html') : null;
+// React UI (web/ → public/ via `bun run build`; index.html is embedded in src/spa-index.generated.js).
+// Falls back to the old single-file pages if the UI isn't built.
+const WEB_DIR = path.join(ROOT, 'public');
+const SPA_INDEX = (await import('./spa-index.generated.js').catch(() => null))?.default || null;
 function sendSpa(res, legacy) {
   res.setHeader('Cache-Control', 'no-store');
-  if (SPA_INDEX) return res.type('html').send(fs.readFileSync(SPA_INDEX, 'utf8'));
+  if (SPA_INDEX) return res.type('html').send(SPA_INDEX);
   res.type('html').send(fs.readFileSync(page(legacy || 'page.html'), 'utf8'));
 }
-app.use('/assets', express.static(path.join(WEB_DIR, 'assets'), { immutable: true, maxAge: '1y', fallthrough: false }));
-app.use('/landing', express.static(path.join(WEB_DIR, 'landing'), { maxAge: '7d', fallthrough: false }));
-for (const f of ['favicon.svg', 'icon.svg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'sw.js', 'manifest.webmanifest']) {
-  app.get(`/${f}`, (_req, res, next) => (fs.existsSync(path.join(WEB_DIR, f)) ? res.sendFile(path.join(WEB_DIR, f), { headers: { 'Cache-Control': f === 'sw.js' ? 'no-cache' : 'public, max-age=86400' } }) : next()));
-}
+// On Vercel the CDN serves public/; locally Express does.
+app.use(express.static(WEB_DIR, { index: false, maxAge: '1h', setHeaders: (res, f) => { if (f.includes(`${path.sep}assets${path.sep}`)) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); else if (f.endsWith('sw.js')) res.setHeader('Cache-Control', 'no-cache'); } }));
+
 const useLogin = () => MODE === 'supabase' && authEnabled();
 
 function requireDashboard(req, res, next) {

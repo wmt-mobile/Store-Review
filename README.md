@@ -29,7 +29,7 @@ Real-time **App Store, TestFlight and Google Play** review status for every WebM
 - **Notifications:** a notification centre (bell), toasts while the dashboard is open, and optional **browser push** (approvals, rejections, stuck builds) per user — Settings → Notifications.
 
 ## Stack
-- **Node 20 + Express** API, and a **React 18 + Tailwind CSS 4** UI in `web/` (built with Vite into `dist/web`, served by Express). The design source is the pen.dev file exported to `design/`.
+- **Node 20 + Express** API, and a **React 18 + Tailwind CSS 4** UI in `web/` (built with Vite into `public/`, served by Express). The design source is the pen.dev file exported to `design/`.
 - **Supabase (Postgres):**
   - Tables: accounts, apps, channel_states, status_events, seen_events, settings, audit_log.
   - RLS is on with no policies, so only the server, using the service-role key, can read or write.
@@ -58,7 +58,7 @@ Copy `.env.example` to `.env`. On Vercel, set the same variables in Project → 
 ```bash
 bun install
 cp .env.example .env      # fill in
-bun run build             # builds the React UI into dist/web
+bun run build             # builds the React UI into public/
 bun start                 # http://localhost:8080 → login
 # UI development with hot reload (API on 8091 in demo mode):
 DEMO_DATA=true NO_SCHEDULER=true PORT=8091 DASHBOARD_TOKEN= node src/index.js &

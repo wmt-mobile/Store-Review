@@ -17,4 +17,5 @@ client_secret_*.json
 .env*
 !.env.example
 design/html/
-dist/
+public/
+src/spa-index.generated.js

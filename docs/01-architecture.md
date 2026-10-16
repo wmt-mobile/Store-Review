@@ -58,7 +58,7 @@
 | `src/apple/*` | App Store Connect client (ES256 JWT), poller, signed webhook receiver |
 | `src/google/play.js` | Play app discovery (Reporting API) + track reading (Publishing API, read-only edits) |
 | `src/google/gmail.js`, `gmail-parser.js` | Read Play emails, turn them into status + reason |
-| `web/` | React 18 + Tailwind 4 UI (Vite → `dist/web`): `pages/` one file per screen, `components/` shared pieces (drawer, email modal, notification centre, command palette, toasts, push), `layout/Shell.jsx` sidebar/top bar, `lib/` API client, data store, formatting, status labels |
+| `web/` | React 18 + Tailwind 4 UI (Vite → `public/`): `pages/` one file per screen, `components/` shared pieces (drawer, email modal, notification centre, command palette, toasts, push), `layout/Shell.jsx` sidebar/top bar, `lib/` API client, data store, formatting, status labels |
 | `src/ui-api.js`, `src/push.js` | `/api/ui/*`: mark resolved / snooze, per-user notification prefs, browser push (web-push + VAPID) |
 | `src/dashboard/*.html` | Previous single-file UI, kept at `/classic` as a fallback |
 | `src/dashboard/view.js` | Builds the dashboard data (pending, attention, stats, activity) |
