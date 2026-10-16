@@ -18,7 +18,7 @@ import { pollPlayAccount } from './google/play.js';
 import { pollGmail, getEmail } from './google/gmail.js';
 import { buildDashboard } from './dashboard/view.js';
 import { buildDigest, digestDue } from './digest.js';
-import { safeSend } from './chat.js';
+import { safeSend, chatUserEmail } from './chat.js';
 import { loadDemoData, DEMO_EMAIL } from './demo.js';
 import { waitUntil } from '@vercel/functions';
 import { db } from './supabase.js';
@@ -403,7 +403,7 @@ function chatInfo() {
     mode: settings.chat?.mode || (config.chatWebhook ? 'webhook' : null),
     spaceName: settings.chat?.displayName || settings.chat?.spaceName || space,
     spaceUrl: id ? `https://chat.google.com/room/${id}` : null,
-    sender: settings.chat_user?.email || null,
+    sender: chatUserEmail() || settings.chat_user?.email || null,
     locked: Boolean(config.chatSpaceLocked),
   };
 }
