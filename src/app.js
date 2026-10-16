@@ -6,7 +6,7 @@ import { config, allAccounts, accountById, gmailEnabled, ROOT } from './config.j
 import { Store, memoryStore } from './store.js';
 import { SupabaseStore, audit } from './db-store.js';
 import { supabaseEnabled } from './supabase.js';
-import { authEnabled, sessionFrom, setSession, clearSession, passwordLogin } from './auth.js';
+import { authEnabled, sessionFrom, setSession, clearSession, passwordLogin, requestPasswordReset, resetPassword } from './auth.js';
 import { AccountRegistry } from './accounts.js';
 import { adminRouter, loadSettings } from './admin-api.js';
 import { Tracker } from './tracker.js';
@@ -220,7 +220,7 @@ app.set('trust proxy', 1);
 
 if (SERVERLESS && MODE === 'supabase') {
   app.use(async (req, res, next) => {
-    if (req.path === '/health' || req.path === '/login' || req.path.startsWith('/api/cron/') || req.path.startsWith('/assets/') || /^\/[\w.-]+\.(svg|png|js|webmanifest)$/.test(req.path)) return next();
+    if (req.path === '/health' || req.path === '/login' || req.path === '/reset-password' || req.path.startsWith('/api/cron/') || req.path.startsWith('/assets/') || /^\/[\w.-]+\.(svg|png|js|webmanifest)$/.test(req.path)) return next();
     try {
       if (Date.now() - loadedAt > 3000) await refreshState();
     } catch (e) {
@@ -300,6 +300,27 @@ app.post('/api/auth/login', express.json({ limit: '8kb' }), async (req, res) => 
   setSession(res, req, r.email);
   audit('auth.login', { actor: r.email, details: { ip: req.ip } });
   res.json({ ok: true, next: safeNext(req.body?.next) });
+});
+// Forgot password → Supabase recovery email → /reset-password#access_token=…&type=recovery
+const baseUrl = (req) => config.publicBaseUrl || `${req.protocol}://${req.get('host')}`;
+app.get('/reset-password', (_req, res) => {
+  if (!useLogin()) return res.redirect('/dashboard');
+  sendSpa(res, 'login.html');
+});
+app.post('/api/auth/forgot', express.json({ limit: '4kb' }), async (req, res) => {
+  if (!useLogin()) return res.status(409).json({ ok: false, error: 'Password reset is only available when sign-in is on' });
+  const r = await requestPasswordReset(req.body?.email, req.ip, `${baseUrl(req)}/reset-password`);
+  if (!r.ok) return res.status(r.error?.startsWith('Too many') ? 429 : 400).json(r);
+  audit('auth.reset_requested', { actor: String(req.body?.email || '').trim().toLowerCase().slice(0, 120), details: { ip: req.ip, sent: r.sent } });
+  res.json({ ok: true });
+});
+app.post('/api/auth/reset', express.json({ limit: '8kb' }), async (req, res) => {
+  if (!useLogin()) return res.status(409).json({ ok: false, error: 'Password reset is only available when sign-in is on' });
+  const r = await resetPassword(req.body?.accessToken, req.body?.password, req.ip);
+  if (!r.ok) return res.status(r.expired ? 401 : 400).json(r);
+  setSession(res, req, r.email);
+  audit('auth.password_reset', { actor: r.email, details: { ip: req.ip } });
+  res.json({ ok: true, next: '/dashboard' });
 });
 app.post('/api/auth/logout', (req, res) => {
   const s = sessionFrom(req);
