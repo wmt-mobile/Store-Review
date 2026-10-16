@@ -25,7 +25,7 @@ Real-time **App Store, TestFlight and Google Play** review status for every WebM
   - Needs attention: rejections and policy issues, with reasons.
   - All apps, Activity.
   - Admin → Setup, Manage apps, Audit log.
-- **Login:** email and password via Supabase Auth. Only emails listed in `AUTH_ALLOWED_EMAILS` can sign in. The session is a signed, HttpOnly cookie that lasts 7 days. **Forgot password?** sends a Supabase recovery email that opens `/reset-password` (see docs/03-howto.md).
+- **Login:** email and password via Supabase Auth. Only emails listed in `AUTH_ALLOWED_EMAILS` can sign in. The session is a signed, HttpOnly cookie that lasts 7 days.
 - **Notifications:** a notification centre (bell), toasts while the dashboard is open, and optional **browser push** (approvals, rejections, stuck builds) per user — Settings → Notifications.
 
 ## Stack

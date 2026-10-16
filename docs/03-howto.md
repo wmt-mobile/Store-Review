@@ -82,29 +82,8 @@ Until then, unrecognised Play emails are still **forwarded to Chat** as "📩 Ne
    - Enter the email and password, and tick **Auto Confirm User**.
 2. Add the email to `AUTH_ALLOWED_EMAILS` in Vercel, comma-separated, then redeploy.
 
-### Forgot password *(UI only)*
-On the sign-in page, click **Forgot password?**, enter the work email, then **Send reset link**.
-1. The server calls Supabase Auth `POST /auth/v1/recover` with `redirect_to=<PUBLIC_BASE_URL>/reset-password`. It only sends for emails in `AUTH_ALLOWED_EMAILS`, but always answers "check your inbox", so it never reveals whether an account exists.
-2. Supabase emails a one-time link (valid 1 hour). Opening it lands on `/reset-password#access_token=…&type=recovery`. The page removes the token from the URL straight away.
-3. The person picks a new password (at least 8 characters, typed twice). The server sets it with `PUT /auth/v1/user` and signs them in.
-4. Expired or used links show "This link can't be used" with a button to send a new one.
-
-Limits: 5 requests per IP per 15 minutes, and 3 emails per address per hour. Supabase's built-in mailer also allows only a few emails per hour.
-
-Each request and reset is recorded in the audit log ("Requested password reset", "Reset password").
-
-**One-time Supabase setup** (Authentication → URL Configuration):
-- **Site URL** = `https://wmt-storereview.vercel.app`.
-- Add `https://wmt-storereview.vercel.app/reset-password` under **Redirect URLs**.
-
-If the redirect URL is missing, Supabase sends people to the Site URL instead. The sign-in page spots the recovery token and forwards to `/reset-password`, so this still works as long as the Site URL is correct.
-
-**Fallback while the Site URL is wrong:** in the email, right-click **Reset Password → Copy link address** (don't open it). Paste it on `/reset-password` ("Email link opened the wrong page?") and the server redeems the token with `POST /auth/v1/verify`. Pasting the localhost address the link opened also works, as long as that page didn't show an error.
-
-The built-in Supabase mailer only delivers to members of the Supabase organisation. For other addresses, set up custom SMTP under Authentication → Emails → SMTP Settings. The email wording is under Authentication → Emails → Templates → **Reset password**.
-
-### Change a password as an admin *(Supabase)*
-Supabase → Authentication → Users → the user → ⋯ → **Send password recovery** (the same email as above), or **Update user** to set a new password directly.
+### Change a password *(Supabase)*
+Supabase → Authentication → Users → the user → ⋯ → **Reset password** (sends an email), or **Update user** to set a new password directly.
 
 ### Remove a user *(Supabase + env)*
 Delete the user in Supabase → Authentication → Users, and remove their email from `AUTH_ALLOWED_EMAILS`. Existing sessions stop working within 7 days at the latest, or immediately once the email is no longer allowed and the app is redeployed.
