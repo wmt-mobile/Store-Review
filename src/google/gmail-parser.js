@@ -12,6 +12,8 @@ const RULES = [
   { status: 'IN_REVIEW', re: /\b(in review|under review|being reviewed)\b/i },
 ];
 
+const SUPPORT_RE = /\[\d-\d{6,}\]|developer support|support survey|your message about|^\s*(re|fwd?):/i;
+
 const TRACKS = [
   { track: 'internal', re: /\binternal (testing|test track)\b/i },
   { track: 'alpha', re: /\bclosed (testing|test track)\b|\balpha\b/i },
@@ -87,7 +89,10 @@ export function parsePlayEmail(email, known = { packages: [] }) {
 
   // status: subject is the strongest signal, then body
   let status = null;
-  for (const src of [subject, body]) {
+  // Support-ticket threads ("[5-7491…] Google Play Developer Support", surveys, "Your message about…") are
+  // conversations with Google, not review results, even when they mention "under review".
+  const conversation = SUPPORT_RE.test(subject);
+  for (const src of conversation ? [] : [subject, body]) {
     const r = RULES.find((rule) => rule.re.test(src));
     if (r) { status = r.status; break; }
   }

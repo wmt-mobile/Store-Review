@@ -150,17 +150,6 @@ const HEADLINE = {
   removed: { emoji: '⛔', title: (to) => to.label },
 };
 
-// Google Play store-listing / app-content changes (reviewed without a new build).
-const LISTING_HEADLINE = {
-  submitted: { emoji: '📝', title: () => 'Store listing update · Sent for review' },
-  in_review: { emoji: '📝', title: () => 'Store listing update · In review' },
-  approved: { emoji: '☑️', title: (to) => (to.label === 'Approved' ? 'Store listing update · Approved' : 'Store listing update · Approved · ready to publish') },
-  live: { emoji: '✅', title: () => 'Store listing changes published' },
-  rejected: { emoji: '🚫', title: () => 'Store listing update · Rejected' },
-  action: { emoji: '🚫', title: (to) => `Store listing update · ${to.label}` },
-  removed: { emoji: '⛔', title: (to) => to.label },
-};
-
 const normName = (n) => String(n || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 /** Deep link into the dashboard (drawer for this app). */
 export function radarLink(app, path = '/dashboard/apps', params = {}) {
@@ -183,7 +172,7 @@ export function statusCard({ app, account, channel, version, extra, from, to, at
   const ver = displayVersion(app.store, version, extra);
   const storeName = app.store === 'google' ? 'Google Play' : 'App Store';
   const track = app.store === 'google' ? (channel === 'production' ? 'Production track' : channelLabel(channel)) : null;
-  const h = (listing ? LISTING_HEADLINE : HEADLINE)[to.category] || { emoji: to.emoji, title: () => to.label };
+  const h = HEADLINE[to.category] || { emoji: to.emoji, title: () => to.label };
   const title = h.title(to, extra);
   const bad = ['rejected', 'action', 'removed'].includes(to.category);
   const ai = bad ? extra?.ai : null;
@@ -193,12 +182,9 @@ export function statusCard({ app, account, channel, version, extra, from, to, at
   // label/value rows, same order as the design cards
   const rows = [];
   const add = (icon, label, value, material) => value && rows.push({ icon, label, value, material });
-  if (listing) {
-    add('🗂️', 'Change', 'Store listing / app content · no new build', 'description');
-    add('⏱️', 'Review took', ['approved', 'live', 'rejected', 'action'].includes(to.category) && took, 'timer');
-    add('📦', 'Live build', ver, 'inventory_2');
-    if (to.category === 'approved') add('💼', 'Account', account?.name || app.accountId, 'account_balance_wallet');
-  } else if (to.category === 'live') {
+  // Play store-listing / app-content change (no new build): same message as a build, plus what changed
+  if (listing) add('🗂️', 'Changes', extra?.note ? `App content · ${extra.note}` : 'Store listing / app content (no new build)', 'description');
+  if (to.category === 'live') {
     add('📦', 'Version', `${ver}${app.store === 'google' ? ` · ${channel === 'production' ? 'Production' : channelLabel(channel)}` : ''}`, 'inventory_2');
     if (extra?.userFraction != null && extra.userFraction < 1) add('📈', 'Rollout', `${Math.round(extra.userFraction * 100)}% of users · started ${fmtTime(at).split(', ').pop()}`, 'trending_up');
   } else if (to.category === 'approved') {
@@ -235,8 +221,8 @@ export function statusCard({ app, account, channel, version, extra, from, to, at
 
   // ── text version (posting as a user: Chat does not allow cards there) ──
   const lines = [];
-  if (bad && config.mentionAll) lines.push(`<users/all> ${listing ? 'Store listing rejection' : 'Rejection'} on ${storeName} — summary below 👇`, '');
-  lines.push(`${h.emoji}  *${title}*`, `${clean(app.name)} · ${storeName}${bad && !listing ? ` · ${clean(ver)}` : ''}`);
+  if (bad && config.mentionAll) lines.push(`<users/all> Rejection on ${storeName} — summary below 👇`, '');
+  lines.push(`${h.emoji}  *${title}*`, `${clean(app.name)} · ${storeName}${bad ? ` · ${clean(ver)}` : ''}`);
   for (const r of rows) lines.push('', `${r.icon}  *${r.label}*`, clean(r.value));
   if (ai) {
     lines.push('', '✨  *AI summary*');
@@ -270,7 +256,7 @@ export function statusCard({ app, account, channel, version, extra, from, to, at
   if (!widgets.length) sections.shift();
 
   return {
-    text: `${h.emoji} ${title} · ${app.name}${listing ? '' : ` ${ver}`}`,
+    text: `${h.emoji} ${title} · ${app.name} ${ver}`,
     chatText: lines.join('\n'),
     cardsV2: [
       {
@@ -278,7 +264,7 @@ export function statusCard({ app, account, channel, version, extra, from, to, at
         card: {
           header: {
             title: `${h.emoji} ${title}`,
-            subtitle: `${app.name} · ${storeName}${bad && !listing ? ` · ${ver}` : ''}`,
+            subtitle: `${app.name} · ${storeName}${bad ? ` · ${ver}` : ''}`,
             imageUrl: app.iconUrl || undefined,
             imageType: 'SQUARE',
           },

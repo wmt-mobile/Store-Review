@@ -16,7 +16,7 @@ All templates are in **`src/chat.js`**, plus the "connected" message in `src/adm
 
 | Message | Function | What to edit |
 |---|---|---|
-| Play store-listing / app-content review | `statusCard({ listing: true })`, headlines in `LISTING_HEADLINE` (`src/chat.js`) | "🗂️ Change · Store listing / app content · no new build" and "📦 Live build" rows |
+| Play store-listing / app-content review | `statusCard({ listing: true })` in `src/chat.js` | Same as a build message plus a "🗂️ Changes" row |
 | Store status change | `statusCard()` in `src/chat.js` | Follows the design's "Google Chat card kit": headline (`HEADLINE`: 📨 Sent for review, 🔎 In review, ☑️ Approved · ready to publish, 🚀 Live · staged rollout, 🚫 Rejected), "app · store" line, label/value rows (📦 Version, ⏱️ Review took, 🕒 Waited, 🔁 From, 📈 Rollout, 💼 Account), ✨ AI summary for rejections, then the action links (Publish in Play Console / Open in Review Radar / View email / Mark resolved) and the full email |
 | Links into the dashboard | `radarLink()` in `src/chat.js` | Uses `PUBLIC_BASE_URL`; `/dashboard/apps?app=…` opens the app drawer, `/dashboard/attention?email=…` opens the email, `?resolve=…` marks it resolved |
 | @all on rejections | `prefs.mentionAll` (Setup → Google Chat) | Adds `<users/all> Rejection on … — summary below 👇` above rejection messages |
@@ -73,6 +73,9 @@ The rules are in **`Tracker.update()`** in `src/tracker.js`:
   - Once it's closed, any new review result is a listing change. `tracker.updateListing()` stores it as `channels[app].production.extra.listing` and leaves the build's status and version alone. It posts as "📝 Store listing update · In review / Approved / Rejected" and "✅ Store listing changes published", with no build number. Rejections keep the AI summary and the full email.
   - The dashboard shows it as a "Store listing" pill next to the build, a separate card on In review and Needs attention, and entries in the history, Activity and bell.
   - App removals always stay on the build.
+  - The Chat message, push and bell look exactly like a build's ("🔎 In review", "☑️ Approved · ready to publish", "🚀 Live", "🚫 Rejected"). The only addition is a "🗂️ Changes · App content · <note>" row.
+  - **Google has no API for Play Console's "Changes in review"** (App content declarations, store listing). The releases API keeps saying PUBLISHED, and no email is sent when the review starts. So the app drawer (Google Play tab) has **Content change sent for review**, with an optional note such as "Ads declaration" (`POST /api/ui/listing`, `action: in_review | published | clear`). Google's later email ("changes are ready to publish" or a rejection) updates it automatically.
+  - Support-ticket emails ("[5-…] Google Play Developer Support", surveys, replies) are never read as review results (`SUPPORT_RE` in `gmail-parser.js`).
   - The routing is in `pollGmail()` (`src/google/gmail.js`) and `listingFromLifecycle()` (`src/google/play.js`).
 - The first time a channel is seen, it is posted, **except** for a brand-new app that is simply already live.
 - Nothing is posted during an account's **quiet first sync** (`silentFirstRun`).

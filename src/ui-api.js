@@ -7,7 +7,7 @@ import { PushStore, pushEnabled, vapidPublicKey, sendPush, normPrefs } from './p
 
 const KEY_RE = /^(apple|google):[\w.-]+:[\w.-]+\|[\w-]+\|[\w .()-]{0,60}$/;
 
-export function uiRouter({ store, mode, pushStore = new PushStore(mode) }) {
+export function uiRouter({ store, tracker, mode, pushStore = new PushStore(mode) }) {
   const r = express.Router();
   r.use(express.json({ limit: '64kb' }));
   const actor = (req) => req.user?.email || (mode === 'demo' ? 'demo@reviewradar.app' : 'admin');
@@ -64,6 +64,26 @@ export function uiRouter({ store, mode, pushStore = new PushStore(mode) }) {
     store.save();
     log('attention.snoozed', { actor: actor(req), target: k.app.name, details: { key: k.key, hours } });
     res.json({ ok: true, until: meta().snoozed[k.key] });
+  });
+
+  // ── Google Play store-listing / app-content reviews ──
+  // Google has no API for Play Console's "Changes in review" (e.g. an Ads declaration), so the team marks it here.
+  // The result still arrives by itself: the "changes are ready to publish" / rejection email updates it.
+  r.post('/listing', async (req, res) => {
+    const appKey = String(req.body?.appKey || '');
+    const app = store.data.apps[appKey];
+    if (!app || app.store !== 'google' || !store.data.channels[appKey]?.production) return res.status(404).json({ error: 'No Google Play production release for this app' });
+    const action = String(req.body?.action || '');
+    const note = String(req.body?.note || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+    const by = actor(req);
+    let result;
+    if (action === 'in_review') result = await tracker.updateListing(appKey, { status: 'IN_REVIEW', extra: { note: note || null, by } });
+    else if (action === 'published') result = await tracker.updateListing(appKey, { status: 'LIVE', extra: { by } });
+    else if (action === 'clear') result = { changed: tracker.clearListing(appKey) };
+    else return res.status(400).json({ error: 'action must be in_review, published or clear' });
+    await store.flush?.();
+    log(`listing.${action}`, { actor: by, target: app.name, details: { note: note || undefined } });
+    res.json({ ok: true, ...result, listing: store.data.channels[appKey]?.production?.extra?.listing || null });
   });
 
   // ── notifications ──

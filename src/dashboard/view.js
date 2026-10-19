@@ -64,6 +64,7 @@ export function buildDashboard(data, accounts, { now = Date.now(), stuckHours = 
           elapsedMs: lElapsed,
           reviewMs: L.reviewMs || null,
           reason: L.reason || null,
+          note: L.note || null,
           emailUrl: L.emailUrl || null,
           ...(['rejected', 'action', 'removed'].includes(ld.category) ? { ai: L.ai || null, messageId: L.messageId || null, mailSubject: L.mailSubject || null } : {}),
         };

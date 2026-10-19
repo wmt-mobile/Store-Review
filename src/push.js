@@ -103,18 +103,8 @@ export function pushMessage({ app, channel, version, to, extra, submittedAt, at 
     rejected: [`${app.name} rejected`, `${store} · ${v} · ${d.label}${extra?.ai ? '. AI summary ready' : ''}`],
     stuck: [`${app.name} over limit`, `${store} · ${v} has been in review ${fmtDuration(elapsedMs || 0)}. Consider an expedited review.`],
   }[ev];
-  if (listing && T) {
-    // store-listing / app-content change: no build involved
-    const L = {
-      sent: `${app.name} store listing sent for review`,
-      in_review: `${app.name} store listing in review`,
-      approved: `${app.name} store listing approved`,
-      live: `${app.name} store listing changes published`,
-      rejected: `${app.name} store listing rejected`,
-    }[ev];
-    const what = ev === 'rejected' ? `${d.label}${extra?.ai ? '. AI summary ready' : ''}` : ev === 'approved' ? 'Ready to publish in Play Console' : 'Listing / app content change · no new build';
-    return L ? { event: ev, title: L, body: `${store} · ${what}` } : null;
-  }
+  // store-listing / app-content change: same notification as a build, marked as content changes
+  if (listing && T) return { event: ev, title: T[0], body: `${T[1]} · ${extra?.note ? `App content · ${extra.note}` : 'App content changes'}` };
   return T ? { event: ev, title: T[0], body: T[1] } : null;
 }
 

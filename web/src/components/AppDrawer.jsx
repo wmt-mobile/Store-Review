@@ -1,9 +1,9 @@
 // App history drawer (pen.dev frame AmKza): per-store status card, timeline for the current version, older releases.
 import { useEffect, useMemo, useState } from 'react';
-import { X, BellOff, Bell, ExternalLink, Package, ChevronDown, Copy, MessageSquare } from 'lucide-react';
+import { X, BellOff, Bell, ExternalLink, Package, ChevronDown, Copy, MessageSquare, Send, Check } from 'lucide-react';
 import { AppIcon, ListingStrip, Pill, StoreIcon, cx } from './ui.jsx';
 import { useData, useUi } from '../lib/store.jsx';
-import { api, patch } from '../lib/api.js';
+import { api, patch, post } from '../lib/api.js';
 import { ago, date, dateTime, dayKey, dur, time, tz, whenShort } from '../lib/format.js';
 import { TONE, isAttention, isPending, statusLabel } from '../lib/model.js';
 import { pillFor } from '../pages/review/parts.jsx';
@@ -143,6 +143,54 @@ function useMute(app, admin) {
   return [state, setState];
 }
 
+/**
+ * Google Play: Google has no API for "Changes in review" (App content, store listing…), so the team marks it here.
+ * The result (ready to publish / rejected) then arrives from Google's email by itself.
+ */
+function ListingControls({ app, listing }) {
+  const { reload } = useData();
+  const { toast } = useUi();
+  const [open, setOpen] = useState(false);
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const active = listing && listing.category !== 'live';
+  const send = async (action) => {
+    setBusy(true);
+    try {
+      await post('/api/ui/listing', { appKey: app.key, action, note });
+      toast({ title: action === 'in_review' ? 'Marked in review' : action === 'published' ? 'Marked published' : 'Cleared', body: action === 'in_review' ? 'Posted to Google Chat · the result updates from Google’s email' : undefined });
+      setOpen(false);
+      setNote('');
+      await reload();
+    } catch (e) {
+      toast({ title: 'Could not update', body: e.message, tone: 'error' });
+    } finally {
+      setBusy(false);
+    }
+  };
+  const btn = 'h-8 px-3 rounded-[10px] text-[12.5px] font-bold inline-flex items-center gap-1.5 disabled:opacity-50';
+  if (open) {
+    return (
+      <form onSubmit={(e) => { e.preventDefault(); send('in_review'); }} className="flex flex-col gap-2">
+        <input autoFocus value={note} onChange={(e) => setNote(e.target.value)} maxLength={120} placeholder="What changed? e.g. Ads declaration"
+          className="h-9 px-3 rounded-[10px] bg-surface text-[13px] font-semibold text-ink outline-none ring-[1.5px] ring-inset ring-line focus:ring-ink" />
+        <div className="flex gap-2">
+          <button type="submit" disabled={busy} className={cx(btn, 'bg-primary text-on-primary')}><Send size={14} />Mark in review</button>
+          <button type="button" onClick={() => setOpen(false)} className={cx(btn, 'text-ink-2 hover:text-ink')}>Cancel</button>
+        </div>
+      </form>
+    );
+  }
+  return (
+    <div className="flex flex-wrap gap-2">
+      {!active || isAttention(listing.category)
+        ? <button onClick={() => setOpen(true)} className={cx(btn, 'ring-[1.5px] ring-inset ring-line text-ink hover:bg-surface')}><Send size={14} />{isAttention(listing?.category) ? 'Sent again for review' : 'Content change sent for review'}</button>
+        : <button onClick={() => send('published')} disabled={busy} className={cx(btn, 'ring-[1.5px] ring-inset ring-line text-ink hover:bg-surface')}><Check size={14} />Mark published</button>}
+      {listing && <button onClick={() => send('clear')} disabled={busy} className={cx(btn, 'text-ink-3 hover:text-ink')}>Clear</button>}
+    </div>
+  );
+}
+
 function DrawerBody({ group, initialStore, onClose }) {
   const { M } = useData();
   const { toast } = useUi();
@@ -241,17 +289,24 @@ function DrawerBody({ group, initialStore, onClose }) {
                 <div className={cx('text-[15px] font-extrabold whitespace-nowrap', c.stuck ? 'text-red' : 'text-ink')}>{isPending(c.category) ? dur(c.elapsedMs) : c.reviewMs ? dur(c.reviewMs) : current?.tookMs ? dur(current.tookMs) : '—'}</div>
               </StatTile>
             </div>
-            {c.listing && (
+            {store === 'google' && (
               <div className="flex flex-col gap-2 p-[14px] rounded-[14px] bg-surface-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <ListingStrip listing={c.listing} className="flex-1" />
-                  <span className="text-[11.5px] font-semibold text-ink-3 whitespace-nowrap">{whenShort(c.listing.since)}</span>
-                </div>
-                <div className="text-[12.5px] font-medium text-ink-2">
-                  Listing / app content change reviewed without a new build — the {c.version} build above is unchanged.
-                  {c.listing.reviewMs ? ` Review took ${dur(c.listing.reviewMs)}.` : c.listing.elapsedMs ? ` In review for ${dur(c.listing.elapsedMs)}.` : ''}
-                </div>
-                {(c.listing.ai?.title || c.listing.reason) && <div className="text-[12.5px] font-semibold text-red">{c.listing.ai?.title || c.listing.reason}</div>}
+                {c.listing ? (
+                  <>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <ListingStrip listing={c.listing} className="flex-1" />
+                      <span className="text-[11.5px] font-semibold text-ink-3 whitespace-nowrap">{whenShort(c.listing.since)}</span>
+                    </div>
+                    <div className="text-[12.5px] font-medium text-ink-2">
+                      {c.listing.note ? `${c.listing.note} · ` : ''}No new build — the {c.version} build above is unchanged.
+                      {c.listing.reviewMs ? ` Review took ${dur(c.listing.reviewMs)}.` : c.listing.elapsedMs ? ` In review for ${dur(c.listing.elapsedMs)}.` : ''}
+                    </div>
+                    {(c.listing.ai?.title || c.listing.reason) && <div className="text-[12.5px] font-semibold text-red">{c.listing.ai?.title || c.listing.reason}</div>}
+                  </>
+                ) : (
+                  <div className="text-[12.5px] font-medium text-ink-2">Changed App content or the store listing (no new build)? Google doesn’t report these reviews, so mark it here.</div>
+                )}
+                <ListingControls app={app} listing={c.listing} />
               </div>
             )}
           </section>

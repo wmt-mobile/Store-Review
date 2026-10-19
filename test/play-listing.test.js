@@ -51,9 +51,9 @@ test('play listing: approval email for the live build posts as a store-listing u
   assert.equal(ch.version, '193 (1.3.193)');
   assert.equal(ch.extra.listing.status, 'READY_TO_PUBLISH');
   assert.equal(sent.length, 1);
-  assert.match(texts()[0], /^☑️ {2}\*Store listing update · Approved · ready to publish\*\nTelfon · Google Play\n/);
-  assert.match(texts()[0], /🗂️ {2}\*Change\*\nStore listing \/ app content · no new build/);
-  assert.match(texts()[0], /📦 {2}\*Live build\*/);
+  assert.match(texts()[0], /^☑️ {2}\*Approved · ready to publish\*\nTelfon · Google Play\n/);
+  assert.match(texts()[0], /🗂️ {2}\*Changes\*\nStore listing \/ app content \(no new build\)/);
+  assert.match(texts()[0], /📦 {2}\*Version\*/);
   assert.equal(events[0].listing, true);
   assert.equal(events[0].notify, true);
 
@@ -64,7 +64,8 @@ test('play listing: approval email for the live build posts as a store-listing u
   await listingFromLifecycle(tracker, key, 'LIVE');
   await listingFromLifecycle(tracker, key, 'LIVE');
   assert.equal(sent.length, 2);
-  assert.match(texts()[1], /^✅ {2}\*Store listing changes published\*/);
+  assert.match(texts()[1], /^🚀 {2}\*Live\*/);
+  assert.match(texts()[1], /Store listing \/ app content/);
   assert.equal(store.data.channels[key].production.status, 'LIVE');
   // history marks listing entries
   const hist = store.data.history[key].filter((h) => h.kind === 'listing').map((h) => h.to);
@@ -81,7 +82,8 @@ test('play listing: Data safety rejection posts with AI summary and shows in Nee
   const ai = { title: 'Data safety form mismatch', issues: ['Location data not declared'], fixes: ['Update the Data safety form'], deadline: null };
   await tracker.updateListing(key, { status: 'REJECTED', reason: 'Data safety', eventId: 'gmail:2', extra: { ai, messageId: 'm2', mailSubject: 'Action required', mailText: 'Full email text' } });
   assert.equal(sent.length, 1);
-  assert.match(texts()[0], /^🚫 {2}\*Store listing update · Rejected\*\nTelfon · Google Play\n/);
+  assert.match(texts()[0], /^🚫 {2}\*Rejected\*\nTelfon · Google Play · /);
+  assert.match(texts()[0], /🗂️ {2}\*Changes\*/);
   assert.match(texts()[0], /Data safety form mismatch/);
   assert.match(texts()[0], /Full email text/);
   assert.match(texts()[0], /resolve=google%3Ap%3Acom\.wmt\.telfon%7Cproduction%7Clisting/);
@@ -111,7 +113,8 @@ test('play listing: in review from the API posts once; review stats ignore listi
   await listingFromLifecycle(tracker, key, 'IN_REVIEW');
   await listingFromLifecycle(tracker, key, 'IN_REVIEW');
   assert.equal(sent.length, 1);
-  assert.match(sent[0].chatText, /Store listing update · In review/);
+  assert.match(sent[0].chatText, /^🔎 {2}\*In review\*/);
+  assert.match(sent[0].chatText, /🗂️ {2}\*Changes\*/);
   const dash = buildDashboard(store.data, [{ id: 'p', name: 'Play', store: 'google' }]);
   assert.ok(dash.pending.some((r) => r.listing && r.category === 'in_review'));
   // nothing happens when the release is simply published and no listing review is active
@@ -152,15 +155,41 @@ test('play listing: a new build after listing changes posts the build flow again
   assert.equal(tracker.playBuildPending(key, '194'), true);
   await build(194, 'IN_REVIEW');
   assert.equal(sent.length, 2);
-  assert.doesNotMatch(sent[0].chatText, /Store listing/);
+  assert.doesNotMatch(sent[0].chatText, /Changes\*/);
 });
 
 test('play listing: push text says store listing, not a build', async () => {
   const { pushMessage } = await import('../src/push.js');
   const app = { name: 'Telfon', store: 'google' };
   const m = pushMessage({ app, channel: 'production', version: '193 (1.3.80)', to: 'READY_TO_PUBLISH', extra: {}, listing: true });
-  assert.equal(m.title, 'Telfon store listing approved');
-  assert.match(m.body, /Ready to publish/);
+  assert.equal(m.title, 'Telfon approved');
+  assert.match(m.body, /App content changes$/);
   const r = pushMessage({ app, channel: 'production', version: '193', to: 'REJECTED', extra: { ai: {} }, listing: true });
-  assert.equal(r.title, 'Telfon store listing rejected');
+  assert.equal(r.title, 'Telfon rejected');
+});
+
+test('play listing: marked in review from the dashboard with a note; the email result keeps the note', async () => {
+  const { tracker, key, build, sent, store } = setup();
+  await build(11, 'SENT_FOR_REVIEW');
+  await build(11, 'LIVE');
+  sent.length = 0;
+  await tracker.updateListing(key, { status: 'IN_REVIEW', extra: { note: 'Ads declaration', by: 'mobile@webmobtech.com' } });
+  assert.match(sent[0].chatText, /^🔎 {2}\*In review\*/);
+  assert.match(sent[0].chatText, /App content · Ads declaration/);
+  await tracker.updateListing(key, { status: 'READY_TO_PUBLISH', eventId: 'gmail:9' });
+  assert.equal(store.data.channels[key].production.extra.listing.note, 'Ads declaration');
+  assert.match(sent[1].chatText, /^☑️ {2}\*Approved · ready to publish\*[\s\S]*App content · Ads declaration/);
+  assert.equal(tracker.clearListing(key), true);
+  assert.equal(store.data.channels[key].production.extra.listing, undefined);
+  assert.equal(store.data.channels[key].production.status, 'LIVE');
+});
+
+test('gmail: support-ticket replies are not review results', async () => {
+  const { parsePlayEmail } = await import('../src/google/gmail-parser.js');
+  const known = { packages: ['com.wmt.arkiq.android'] };
+  const r = parsePlayEmail({ subject: 'Re: [5-7491000042269] - Google Play Developer Support [com.wmt.arkiq.android]', body: 'Your app is currently under review. We will get back to you.' }, known);
+  assert.equal(r.packageName, 'com.wmt.arkiq.android');
+  assert.equal(r.status, null);
+  assert.equal(parsePlayEmail({ subject: 'Re: [5-7491000042269] Google Play Developer Support Survey', body: 'approved' }, known).status, null);
+  assert.equal(parsePlayEmail({ subject: 'Your changes are ready to publish', body: 'arkIQ (com.wmt.arkiq.android)' }, known).status, 'READY_TO_PUBLISH');
 });

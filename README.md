@@ -17,7 +17,7 @@ Real-time **App Store, TestFlight and Google Play** review status for every WebM
   - App Store: sent for review → in review → approved → live, plus rejected, metadata rejected and invalid binary.
   - TestFlight: beta review states and new builds.
   - Google Play tracks: production, open, closed and internal testing; sent to Google, rollout and halted.
-  - Google Play store-listing / app-content reviews (no new build) are kept apart from builds. They post as "📝 Store listing update" and show as a "Store listing" pill on the dashboard, never as a fake build "Live".
+  - Google Play store-listing / app-content reviews (no new build) are kept apart from builds. They post like a build message, with a "🗂️ Changes" line, and show as a "Store listing" pill on the dashboard, never as a fake build "Live". Google doesn't report when such a review starts, so mark it in the app drawer with **Content change sent for review**.
 - **Reads Play Console emails** from a shared Gmail inbox. Google Play has no review-status API, so approvals, "live", rejection reasons and policy notices come from email. Any other Play email is forwarded to Chat as well.
 - **Posts every change to Google Chat right away** (no daily digest). Messages are threaded per app version.
 - **Dashboard pages:**

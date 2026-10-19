@@ -451,7 +451,7 @@ if (MODE === 'supabase') {
 }
 if (MODE === 'demo') app.use('/api/admin', requireDashboard, demoAdminRouter({ config, store }));
 // Endpoints used by the React UI (resolve / snooze, notification prefs, browser push).
-app.use('/api/ui', requireDashboard, uiRouter({ config, store, mode: MODE, settings, pushStore }));
+app.use('/api/ui', requireDashboard, uiRouter({ config, store, tracker, mode: MODE, settings, pushStore }));
 
 app.post(
   '/apple/webhook/:accountId',

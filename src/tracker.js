@@ -238,8 +238,8 @@ export class Tracker {
     const mail = Object.fromEntries(['ai', 'mailSubject', 'mailText', 'messageId', 'emailUrl'].map((k) => [k, extra[k]]).filter(([, v]) => v != null));
     if (prevL && prevL.status === status) {
       // same result again (email + API both report it): only fill in details
-      if (Object.keys(mail).length || (reason && !prevL.reason)) {
-        ch.extra.listing = { ...prevL, ...mail, reason: prevL.reason || reason || null };
+      if (Object.keys(mail).length || (reason && !prevL.reason) || (extra.note && extra.note !== prevL.note)) {
+        ch.extra.listing = { ...prevL, ...mail, reason: prevL.reason || reason || null, note: extra.note || prevL.note || null };
         this.store.save();
       }
       return { changed: false, notified: false };
@@ -258,6 +258,9 @@ export class Tracker {
         submittedAt: subAt,
         reviewMs: subAt && isTerminal(to.category) ? at - subAt : null,
         reason: reason || (bad && prevL?.reason) || null,
+        // what was changed (from "Sent content change for review" on the dashboard), kept until it's published
+        note: extra.note || (prevL && prevL.category !== 'live' ? prevL.note : null) || null,
+        by: extra.by || (prevL && prevL.category !== 'live' ? prevL.by : null) || null,
         ...(bad ? mail : { emailUrl: mail.emailUrl }),
       },
     };
@@ -293,6 +296,15 @@ export class Tracker {
     });
     const target = { webhook: app.chatWebhook || this.config.chatWebhook, threadKey: this.threadFor(appKey, 'listing') };
     return this.deliver(card, target, to.category, at);
+  }
+
+  /** Remove the store-listing state (dashboard "Clear"). */
+  clearListing(appKey) {
+    const ch = this.d.channels[appKey]?.production;
+    if (!ch?.extra?.listing) return false;
+    delete ch.extra.listing;
+    this.store.save();
+    return true;
   }
 
   /** Post messages held during quiet hours (oldest first). */
