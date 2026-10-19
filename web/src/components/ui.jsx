@@ -1,9 +1,9 @@
 // Design-system primitives from the pen.dev "Review Radar — Components" board.
 import { forwardRef } from 'react';
 import { AppleLogo, GooglePlayLogo } from '@phosphor-icons/react';
-import { Loader2, FileText } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { MARK_SVG } from './logo-paths.js';
-import { gradFor, listingText, TONE } from '../lib/model.js';
+import { gradFor } from '../lib/model.js';
 
 export const cx = (...a) => a.filter(Boolean).join(' ');
 
@@ -42,17 +42,6 @@ export function Pill({ tone = 'grey', children, className, dot = true, small }) 
     <span className={cx('inline-flex items-center gap-[6px] rounded-full font-bold whitespace-nowrap', small ? 'h-[22px] px-2 text-[11px]' : 'h-[26px] px-[10px] text-[12px]', PILL[tone] || PILL.grey, className)}>
       {dot && <span className="size-[6px] rounded-full bg-current shrink-0" />}
       {children}
-    </span>
-  );
-}
-
-/** Google Play store-listing / app-content review shown next to a build's status (no new build). */
-export function ListingStrip({ listing, className }) {
-  if (!listing) return null;
-  return (
-    <span className={cx('inline-flex items-center gap-1.5 min-w-0 text-[12px] font-semibold text-ink-2 whitespace-nowrap', className)} title="Store listing / app content change · no new build">
-      <FileText size={13} className="shrink-0" />Store listing
-      <Pill small tone={TONE[listing.category] || 'grey'} className="min-w-0"><span className="truncate">{listingText(listing)}</span></Pill>
     </span>
   );
 }

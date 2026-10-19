@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Table2, LayoutGrid, ChevronRight, Search } from 'lucide-react';
-import { AppIcon, Button, Empty, ListingStrip, PageHead, Pill, Skeleton, StoreIcon, cx } from '../components/ui.jsx';
+import { AppIcon, Button, Empty, PageHead, Pill, Skeleton, StoreIcon, cx } from '../components/ui.jsx';
 import { LS, useData, useUi } from '../lib/store.jsx';
 import { whenShort } from '../lib/format.js';
 import { isAttention, isPending } from '../lib/model.js';
@@ -16,7 +16,7 @@ const FILTERS = [
   { key: 'live', label: 'Live', test: (cats) => cats.includes('live') },
 ];
 
-const catsOf = (g) => [g.iosCh?.category, g.androidCh?.category, g.androidCh?.listing?.category].filter(Boolean);
+const catsOf = (g) => [g.iosCh?.category, g.androidCh?.category].filter(Boolean);
 
 function StoreCell({ store, c }) {
   if (!c) return <div className="text-[12.5px] font-medium text-ink-3">{store === 'apple' ? 'Not on the App Store' : 'Not on Google Play'}</div>;
@@ -29,7 +29,6 @@ function StoreCell({ store, c }) {
         <span className="font-bold text-ink">{c.version || '—'}</span>
         {s.text && <span className={cx('font-medium truncate', s.red ? 'text-red' : 'text-ink-3')}>· {s.text}</span>}
       </div>
-      <ListingStrip listing={c.listing} className="max-w-full" />
     </div>
   );
 }

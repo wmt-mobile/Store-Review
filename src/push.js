@@ -88,7 +88,7 @@ export class PushStore {
 }
 
 /** Title/body for one status change, matching the design's notification copy. */
-export function pushMessage({ app, channel, version, to, extra, submittedAt, at = Date.now(), event, elapsedMs, listing = false }) {
+export function pushMessage({ app, channel, version, to, extra, submittedAt, at = Date.now(), event, elapsedMs }) {
   const d = describe(app.store, channel, to);
   const store = app.store === 'apple' ? 'App Store' : 'Google Play';
   const platform = app.store === 'apple' ? 'iOS' : 'Android';
@@ -103,8 +103,6 @@ export function pushMessage({ app, channel, version, to, extra, submittedAt, at 
     rejected: [`${app.name} rejected`, `${store} · ${v} · ${d.label}${extra?.ai ? '. AI summary ready' : ''}`],
     stuck: [`${app.name} over limit`, `${store} · ${v} has been in review ${fmtDuration(elapsedMs || 0)}. Consider an expedited review.`],
   }[ev];
-  // store-listing / app-content change: same notification as a build, marked as content changes
-  if (listing && T) return { event: ev, title: T[0], body: `${T[1]} · ${extra?.note ? `App content · ${extra.note}` : 'App content changes'}` };
   return T ? { event: ev, title: T[0], body: T[1] } : null;
 }
 

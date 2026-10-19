@@ -18,7 +18,6 @@ export const ACTIONS = {
   'gmail.client_saved': 'Saved Gmail OAuth client', 'gmail.connected': 'Connected Gmail', 'gmail.connect_failed': 'Gmail connection failed', 'gmail.disconnected': 'Disconnected Gmail',
   'gmail.query_updated': 'Changed Gmail search', 'gmail.parsed': 'Parsed rejection email', 'onboarding.completed': 'Completed onboarding', 'poll.manual': 'Checked stores now',
   'poll.error': 'Store check failed', 'stuck.alert': 'Review limit exceeded', 'attention.resolved': 'Marked resolved', 'attention.reopened': 'Reopened', 'attention.snoozed': 'Snoozed alert',
-  'listing.in_review': 'Sent store listing change for review', 'listing.published': 'Marked store listing published', 'listing.clear': 'Cleared store listing status',
   'push.subscribed': 'Turned on browser notifications', 'push.unsubscribed': 'Turned off browser notifications', 'notify.prefs_updated': 'Changed notification settings',
 };
 /** Label for an entry (string action or the whole entry, so app.updated can say what changed). */

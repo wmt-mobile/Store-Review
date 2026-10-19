@@ -57,9 +57,6 @@ export function statusLabel(store, status, fallback, { userFraction } = {}) {
   return l;
 }
 
-/** Short label for a Play store-listing / app-content review (no new build). */
-export const listingText = (l) => (l ? (l.category === 'live' ? 'Changes published' : statusLabel('google', l.status, l.label)) : '');
-
 export const storeName = (s) => (s === 'apple' ? 'App Store' : 'Google Play');
 export const platformName = (s) => (s === 'apple' ? 'iOS' : 'Android');
 export const isPending = (cat) => cat === 'submitted' || cat === 'in_review';
@@ -121,7 +118,7 @@ export function chartSeries(M, days, now = Date.now()) {
     const hist = [...(app.history || [])].sort((a, b) => a.at - b.at);
     let startAt = null;
     for (const h of hist) {
-      if (h.listing || h.at < t0 - 30 * 86_400_000) continue;
+      if (h.at < t0 - 30 * 86_400_000) continue;
       const day = out.find((d) => h.at >= d.d0 && h.at < d.d1);
       if (isPending(h.category)) {
         if (h.category === 'submitted' || startAt == null) {

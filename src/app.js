@@ -74,7 +74,7 @@ const tracker = new Tracker({
     if (MODE !== 'supabase') return;
     if (type === 'error') audit('poll.error', { target: findAccount(e.accountId)?.name || e.accountId, details: { context: e.context, message: e.message }, level: 'error' });
     else if (type === 'store_message') audit('chat.store_message', { target: e.app?.name || 'Google Play Console', details: { subject: e.subject } });
-    else if (type === 'status' && e.notify) audit('chat.notified', { target: e.app.name, details: { channel: e.channel, version: e.version, from: e.from, to: e.to, ...(e.listing ? { listing: true } : {}) } });
+    else if (type === 'status' && e.notify) audit('chat.notified', { target: e.app.name, details: { channel: e.channel, version: e.version, from: e.from, to: e.to } });
   },
 });
 
@@ -162,10 +162,9 @@ const pushQueue = [];
 function queuePush(e) {
   if (!pushEnabled()) return;
   const ch = store.data.channels[e.app.key]?.[e.channel] || {};
-  const L = e.listing ? ch.extra?.listing || {} : null;
-  const msg = pushMessage({ app: e.app, channel: e.channel, version: e.version, to: e.to, extra: L || ch.extra, submittedAt: L ? L.submittedAt : ch.submittedAt, listing: Boolean(L) });
+  const msg = pushMessage({ app: e.app, channel: e.channel, version: e.version, to: e.to, extra: ch.extra, submittedAt: ch.submittedAt });
   if (!msg) return;
-  const p = sendPush(pushStore, { ...msg, url: '/dashboard/apps', tag: `${e.app.key}:${e.channel}${L ? ':listing' : ''}` }).catch((err) => console.warn('[push]', err.message));
+  const p = sendPush(pushStore, { ...msg, url: '/dashboard/apps', tag: `${e.app.key}:${e.channel}` }).catch((err) => console.warn('[push]', err.message));
   pushQueue.push(p);
   if (SERVERLESS) waitUntil(p);
 }
@@ -405,7 +404,7 @@ app.get('/api/email/:id', requireDashboard, async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   const id = String(req.params.id || '');
   if (MODE === 'demo') return id === DEMO_EMAIL.id ? res.json(DEMO_EMAIL) : res.status(404).json({ error: 'not found' });
-  const linked = Object.values(store.data.channels || {}).some((chs) => Object.values(chs || {}).some((c) => c?.extra?.messageId === id || c?.extra?.listing?.messageId === id));
+  const linked = Object.values(store.data.channels || {}).some((chs) => Object.values(chs || {}).some((c) => c?.extra?.messageId === id));
   if (!/^[0-9a-f]{8,32}$/i.test(id) || !linked) return res.status(404).json({ error: 'not found' });
   if (!gmailEnabled()) return res.status(409).json({ error: 'Gmail is not connected' });
   try {
@@ -451,7 +450,7 @@ if (MODE === 'supabase') {
 }
 if (MODE === 'demo') app.use('/api/admin', requireDashboard, demoAdminRouter({ config, store }));
 // Endpoints used by the React UI (resolve / snooze, notification prefs, browser push).
-app.use('/api/ui', requireDashboard, uiRouter({ config, store, tracker, mode: MODE, settings, pushStore }));
+app.use('/api/ui', requireDashboard, uiRouter({ config, store, mode: MODE, settings, pushStore }));
 
 app.post(
   '/apple/webhook/:accountId',

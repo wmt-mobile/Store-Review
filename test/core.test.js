@@ -342,3 +342,29 @@ test('quiet hours window crosses midnight in the display time zone', async () =>
   assert.equal(isQuiet(cfg, Date.parse('2026-10-16T08:00:00Z')), false);
   assert.equal(isQuiet({ ...cfg, quietHours: { enabled: false } }, Date.parse('2026-10-16T23:30:00Z')), false);
 });
+
+test('gmail: support-ticket replies are not review results', () => {
+  const known = { packages: ['com.wmt.arkiq.android'] };
+  const r = parsePlayEmail({ subject: 'Re: [5-7491000042269] - Google Play Developer Support [com.wmt.arkiq.android]', body: 'Your app is currently under review.' }, known);
+  assert.equal(r.packageName, 'com.wmt.arkiq.android');
+  assert.equal(r.status, null);
+  assert.equal(parsePlayEmail({ subject: 'Re: [5-7491000042269] Google Play Developer Support Survey', body: 'approved' }, known).status, null);
+  assert.equal(parsePlayEmail({ subject: 'Your changes are ready to publish', body: 'arkIQ (com.wmt.arkiq.android)' }, known).status, 'READY_TO_PUBLISH');
+});
+
+test('review time stops at approval, not when the build goes live', async () => {
+  const { tracker, store } = mkTracker(false);
+  const key = tracker.registerApp({ store: 'google', accountId: 'p', appId: 'com.x', name: 'X' });
+  tracker.registerApp({ store: 'google', accountId: 'p', appId: 'com.y', name: 'Y' });
+  const H = 3_600_000;
+  const t0 = Date.now() - 100 * H;
+  const up = (status, at) => tracker.update(key, 'production', { version: '193 (1.3.80)', status, at, extra: { versionCodes: '193' } });
+  await up('SENT_FOR_REVIEW', t0);
+  await up('IN_REVIEW', t0 + 2 * H);
+  await up('READY_TO_PUBLISH', t0 + 6 * H);
+  await up('LIVE', t0 + 96 * H);
+  assert.equal(store.data.channels[key].production.reviewMs, 6 * H);
+  store.data.channels[key].production.reviewMs = 96 * H; // older saved state is corrected from the history
+  const dash = buildDashboard(store.data, [{ id: 'p', name: 'Play', store: 'google' }]);
+  assert.equal(dash.apps.find((a) => a.key === key).channels.production.reviewMs, 6 * H);
+});

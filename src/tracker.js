@@ -135,8 +135,6 @@ export class Tracker {
       extra: extra || undefined,
     };
 
-    if (app.store === 'google' && channel === 'production') this.trackPlayCycle(appKey, extra?.versionCodes ?? prev?.extra?.versionCodes, status);
-
     const hist = (this.d.history[appKey] ||= []);
     hist.unshift({ at, channel, version: version || '', from: prev?.status || null, to: status, reason: reason || null });
     if (hist.length > HISTORY_MAX) hist.length = HISTORY_MAX;
@@ -175,12 +173,7 @@ export class Tracker {
       links: [...consoleLinks(app, account, channel), ...(extra?.emailUrl ? [{ text: 'Open email', url: extra.emailUrl }] : [])],
     });
     const target = { webhook: app.chatWebhook || this.config.chatWebhook, threadKey };
-    return this.deliver(card, target, to.category, at);
-  }
-
-  /** Post now, or hold it during quiet hours (rejections always go out). */
-  async deliver(card, target, category, at) {
-    if (isQuiet(this.config, at) && !['rejected', 'action', 'removed'].includes(category)) {
+    if (isQuiet(this.config, at) && !['rejected', 'action', 'removed'].includes(to.category)) {
       // Quiet hours: hold non-critical posts, sent in order once the window ends (flushHeld).
       (this.d.meta.held ||= []).push({ card, target, at });
       this.store.save();
@@ -188,126 +181,6 @@ export class Tracker {
     }
     await this.send(card, target);
     return { changed: true, notified: true };
-  }
-
-  // ── Google Play: build releases vs store-listing / app-content changes ──
-  // Play reviews listing and content edits (description, screenshots, Data safety, content rating…) without a
-  // new build. A "build cycle" per app remembers the versionCodes of the last release: it is open from the moment
-  // new codes appear until that release is fully live. Review results that arrive while the cycle is closed
-  // belong to a listing/content change, not to the build, and are tracked separately (updateListing).
-
-  /** Seed (first use), open (new codes) or close (fully live) the cycle for this app. */
-  trackPlayCycle(appKey, codes, status) {
-    const m = (this.d.meta.playCycle ||= {});
-    codes = String(codes || '');
-    const c = m[appKey];
-    if (!c || (codes && c.codes !== codes)) m[appKey] = { codes, closed: false };
-    if (status === 'LIVE') m[appKey].closed = true;
-  }
-
-  /** True when a Play production result belongs to a build that is still on its way to live. */
-  playBuildPending(appKey, codes) {
-    const m = (this.d.meta.playCycle ||= {});
-    codes = String(codes || '');
-    if (!m[appKey]) {
-      // first time: a fully released build (live, or a completed release that only had a listing result) is settled
-      const ch = this.d.channels[appKey]?.production;
-      const cat = ch ? describe('google', 'production', ch.status).category : null;
-      const settled = ch && (ch.status === 'LIVE' || (ch.extra?.releaseStatus === 'completed' && ['rejected', 'action', 'removed'].includes(cat)));
-      m[appKey] = { codes: String(ch?.extra?.versionCodes || codes), closed: Boolean(settled) };
-      this.store.save();
-    }
-    const c = m[appKey];
-    if (codes && c.codes && c.codes !== codes) return true;
-    return !c.closed;
-  }
-
-  /**
-   * A review result for a store-listing / app-content change (no new build). Stored on the production channel as
-   * extra.listing, so the build's own status and version are untouched; posted as "Store listing update".
-   */
-  async updateListing(appKey, { status, reason, at = Date.now(), eventId, extra = {} } = {}) {
-    const app = this.d.apps[appKey];
-    const ch = this.d.channels[appKey]?.production;
-    if (!app || !ch) return { changed: false, notified: false };
-    if (eventId) {
-      if (this.d.seen[eventId]) return { changed: false, notified: false, duplicate: true };
-      this.d.seen[eventId] = Date.now();
-    }
-    const prevL = ch.extra?.listing || null;
-    const to = describe('google', 'production', status);
-    const from = prevL ? describe('google', 'production', prevL.status) : null;
-    const bad = ['rejected', 'action', 'removed'].includes(to.category);
-    const mail = Object.fromEntries(['ai', 'mailSubject', 'mailText', 'messageId', 'emailUrl'].map((k) => [k, extra[k]]).filter(([, v]) => v != null));
-    if (prevL && prevL.status === status) {
-      // same result again (email + API both report it): only fill in details
-      if (Object.keys(mail).length || (reason && !prevL.reason) || (extra.note && extra.note !== prevL.note)) {
-        ch.extra.listing = { ...prevL, ...mail, reason: prevL.reason || reason || null, note: extra.note || prevL.note || null };
-        this.store.save();
-      }
-      return { changed: false, notified: false };
-    }
-    const fromPending = from && (isPending(from.category) || from.category === 'approved');
-    let subAt = null;
-    if (isPending(to.category)) subAt = fromPending && isPending(from.category) ? prevL.submittedAt : at;
-    else if (fromPending) subAt = prevL.submittedAt || null;
-    ch.extra = {
-      ...ch.extra,
-      listing: {
-        status,
-        label: to.label,
-        category: to.category,
-        since: at,
-        submittedAt: subAt,
-        reviewMs: subAt && isTerminal(to.category) ? (to.category === 'live' && from?.category === 'approved' ? prevL.reviewMs || prevL.since - subAt : at - subAt) : null,
-        reason: reason || (bad && prevL?.reason) || null,
-        // what was changed (from "Sent content change for review" on the dashboard), kept until it's published
-        note: extra.note || (prevL && prevL.category !== 'live' ? prevL.note : null) || null,
-        by: extra.by || (prevL && prevL.category !== 'live' ? prevL.by : null) || null,
-        ...(bad ? mail : { emailUrl: mail.emailUrl }),
-      },
-    };
-    const hist = (this.d.history[appKey] ||= []);
-    hist.unshift({ at, channel: 'production', version: ch.version || '', from: prevL?.status || null, to: status, reason: reason || null, kind: 'listing' });
-    if (hist.length > HISTORY_MAX) hist.length = HISTORY_MAX;
-
-    let notify = this.isInitialized(app.accountId) && !app.hidden && !app.muted && !SILENT_CATEGORIES.has(to.category);
-    // "approved" by email and "ready to publish" from the API are the same news
-    if (notify && from && from.category === to.category && !bad) notify = false;
-    const evKey = { submitted: 'submitted', in_review: 'in_review', approved: 'approved', live: 'live', rejected: 'rejected', action: 'rejected', removed: 'rejected' }[to.category];
-    if (notify && evKey && this.config.chatEvents?.[evKey] === false) notify = false;
-
-    this.store.save();
-    this.onEvent('status', { app, channel: 'production', version: ch.version, from: prevL?.status || null, to: status, reason: reason || null, notify, listing: true });
-    if (!notify) return { changed: true, notified: false };
-
-    const account = this.accountById(app.accountId);
-    const L = ch.extra.listing;
-    const card = statusCard({
-      app,
-      account,
-      channel: 'production',
-      version: ch.version,
-      extra: { ...ch.extra, ...L },
-      from,
-      to,
-      at,
-      submittedAt: L.submittedAt,
-      reason: L.reason,
-      listing: true,
-      links: [...consoleLinks(app, account, 'production'), ...(L.emailUrl ? [{ text: 'Open email', url: L.emailUrl }] : [])],
-    });
-    const target = { webhook: app.chatWebhook || this.config.chatWebhook, threadKey: this.threadFor(appKey, 'listing') };
-    return this.deliver(card, target, to.category, at);
-  }
-
-  /** Remove the store-listing state (dashboard "Clear"). */
-  clearListing(appKey) {
-    const ch = this.d.channels[appKey]?.production;
-    if (!ch?.extra?.listing) return false;
-    delete ch.extra.listing;
-    this.store.save();
-    return true;
   }
 
   /** Post messages held during quiet hours (oldest first). */

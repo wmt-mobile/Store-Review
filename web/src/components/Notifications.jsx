@@ -75,7 +75,6 @@ function toItem(a, M) {
     title = `${short(a.appName)} rejected`;
     body = `${sName} · ${statusLabel(a.store, null, a.label).replace(/^Rejected · /, '')}${current && ch.ai ? ' · AI summary ready' : ''}`;
   } else return null;
-  if (a.listing) body = `${sName} · App content changes`;
   return { id: a.id, at: a.at, cat, event: EVENT[a.category], title, body, appName: a.appName, iconUrl: a.iconUrl, appKey: a.appKey, store: a.store };
 }
 

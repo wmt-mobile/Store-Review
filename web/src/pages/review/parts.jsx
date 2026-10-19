@@ -30,21 +30,6 @@ export function channelRows(apps, accounts = []) {
         bundle: app.bundleOrPackage,
         app,
       });
-      // Google Play store-listing / app-content review: its own card, no build number
-      const L = c.listing;
-      if (L) {
-        out.push({
-          ...out[out.length - 1],
-          ...L,
-          id: `${app.key}|${chKey}|listing`,
-          version: 'Store listing',
-          rawVersion: 'listing',
-          listing: true,
-          label: L.label,
-          stuck: false,
-          userFraction: null,
-        });
-      }
     }
   }
   return out;

@@ -168,7 +168,7 @@ function deadlineText(d, now = Date.now()) {
 }
 
 /** Card for one status change (cardsV2 for a Chat app / webhook, `chatText` for "post as me"). */
-export function statusCard({ app, account, channel, version, extra, from, to, at, submittedAt, reason, links = [], listing = false }) {
+export function statusCard({ app, account, channel, version, extra, from, to, at, submittedAt, reason, links = [] }) {
   const ver = displayVersion(app.store, version, extra);
   const storeName = app.store === 'google' ? 'Google Play' : 'App Store';
   const track = app.store === 'google' ? (channel === 'production' ? 'Production track' : channelLabel(channel)) : null;
@@ -182,8 +182,6 @@ export function statusCard({ app, account, channel, version, extra, from, to, at
   // label/value rows, same order as the design cards
   const rows = [];
   const add = (icon, label, value, material) => value && rows.push({ icon, label, value, material });
-  // Play store-listing / app-content change (no new build): same message as a build, plus what changed
-  if (listing) add('🗂️', 'Changes', extra?.note ? `App content · ${extra.note}` : 'Store listing / app content (no new build)', 'description');
   if (to.category === 'live') {
     add('📦', 'Version', `${ver}${app.store === 'google' ? ` · ${channel === 'production' ? 'Production' : channelLabel(channel)}` : ''}`, 'inventory_2');
     if (extra?.userFraction != null && extra.userFraction < 1) add('📈', 'Rollout', `${Math.round(extra.userFraction * 100)}% of users · started ${fmtTime(at).split(', ').pop()}`, 'trending_up');
@@ -214,7 +212,7 @@ export function statusCard({ app, account, channel, version, extra, from, to, at
   if (bad && extra?.messageId) { const u = radarLink(app, '/dashboard/attention', { email: extra.messageId }); if (u) btns.unshift({ text: 'View email', url: u }); }
   const radar = radarLink(app, bad ? '/dashboard/attention' : '/dashboard/apps');
   if (radar) btns.push({ text: 'Open in Review Radar', url: radar });
-  if (bad && radar) btns.push({ text: 'Mark resolved', url: radarLink(app, '/dashboard/attention', { resolve: `${app.key || ''}|${channel}|${listing ? 'listing' : version || ''}` }) });
+  if (bad && radar) btns.push({ text: 'Mark resolved', url: radarLink(app, '/dashboard/attention', { resolve: `${app.key || ''}|${channel}|${version || ''}` }) });
   for (const l of links) if (l?.url && l !== consoleLink && !btns.some((b) => b.url === l.url)) btns.push({ text: l.text, url: l.url });
   // rejections: View email · Open in Review Radar · Mark resolved (console link only when there's no dashboard URL)
   if (bad && radar) btns.splice(btns.findIndex((b) => b.url === consoleLink?.url) >>> 0, consoleLink ? 1 : 0);

@@ -160,14 +160,6 @@ export function lifecycleStatus(releases, next) {
   return st;
 }
 
-/** Mirror the release lifecycle into the listing state while no new build is pending. */
-export async function listingFromLifecycle(tracker, key, st) {
-  const cur = tracker.d.channels[key]?.production?.extra?.listing;
-  if (['IN_REVIEW', 'READY_TO_PUBLISH', 'REJECTED'].includes(st)) return tracker.updateListing(key, { status: st });
-  // published again after a listing review → "changes published"
-  if (['LIVE', 'ROLLOUT'].includes(st) && cur && ['submitted', 'in_review', 'approved'].includes(cur.category)) return tracker.updateListing(key, { status: 'LIVE' });
-}
-
 export async function pollPlayApp(account, tracker, packageName) {
   const key = appKeyOf('google', account.id, packageName);
   const tracks = await fetchTracks(account, packageName);
@@ -184,10 +176,7 @@ export async function pollPlayApp(account, tracker, packageName) {
         console.warn(`[play] release states for ${packageName}:`, e.message);
       }
       const st = releases && lifecycleStatus(releases, next);
-      if (!tracker.playBuildPending(key, next.extra?.versionCodes)) {
-        // Same build, already fully live: a review now is a store-listing / app-content change. Keep the build status.
-        await listingFromLifecycle(tracker, key, st);
-      } else if (st) next.status = st;
+      if (st) next.status = st;
       else if (!releases && ['submitted', 'in_review', 'approved'].includes(describe('google', t.track, next.status).category)) {
         const name = releaseVersionName(next.version);
         const onStore = name ? await publicPlayVersion(packageName) : null;

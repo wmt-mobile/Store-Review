@@ -131,12 +131,6 @@ export async function pollGmail(tracker) {
       parsed.track ||
       Object.entries(chans).find(([ch, s]) => isPending(describe('google', ch, s.status).category))?.[0] ||
       'production';
-    // No new build on its way: the email is about a store-listing / app-content change (app removals stay on the build).
-    if (track === 'production' && chans.production && parsed.status !== 'REMOVED' && !tracker.playBuildPending(app.key, chans.production.extra?.versionCodes)) {
-      await tracker.updateListing(app.key, { status: parsed.status, reason: parsed.reason, at, eventId, extra: { emailUrl, ...mail } });
-      processed++;
-      continue;
-    }
     await tracker.update(app.key, track, {
       version: chans[track]?.version || '',
       status: parsed.status,
