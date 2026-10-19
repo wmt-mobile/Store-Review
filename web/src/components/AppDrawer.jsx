@@ -34,8 +34,10 @@ function releasesOf(app, channel) {
     .map(([version, events]) => {
       const firstPending = events.find((e) => isPending(e.category));
       const last = events[events.length - 1];
-      const tookMs = firstPending && !isPending(last.category) ? last.at - firstPending.at : null;
-      return { version, events, last, firstPending, tookMs, attempts: events.filter((e) => e.category === 'submitted').length, rejected: events.some((e) => isAttention(e.category)) };
+      // the review clock stops at the first result (approval), not when it goes live
+      const decided = firstPending && events.find((e) => e.at >= firstPending.at && !isPending(e.category));
+      const tookMs = decided ? decided.at - firstPending.at : null;
+      return { version, events, last, firstPending, decided, tookMs, attempts: events.filter((e) => e.category === 'submitted').length, rejected: events.some((e) => isAttention(e.category)) };
     })
     .sort((a, b) => b.last.at - a.last.at);
 }
@@ -76,7 +78,7 @@ function Release({ store, rel, current, channelLabel, defaultOpen, title }) {
       {events.map((e, i) => {
         const older = events[i + 1];
         const isFirst = !older;
-        const took = !isPending(e.category) && rel.firstPending && e.at > rel.firstPending.at ? e.at - rel.firstPending.at : null;
+        const took = rel.decided && e === rel.decided ? e.at - rel.firstPending.at : null;
         const top = i === 0 && current;
         return (
           <div key={`${e.at}-${e.to}`} className="flex gap-3">
@@ -231,7 +233,7 @@ function DrawerBody({ group, initialStore, onClose }) {
 
   return (
     <>
-      <div className="flex flex-col gap-[18px] px-6 pt-6">
+      <div className="sticky top-0 z-10 flex flex-col gap-[18px] px-6 pt-6 pb-4 bg-bg sm:rounded-tl-[24px] shadow-[0_8px_12px_-12px_rgba(15,17,12,.25)]">
         <div className="flex items-center gap-[14px]">
           <AppIcon name={group.name} iconUrl={group.iconUrl} size={52} radius={14} />
           <div className="flex-1 min-w-0 flex flex-col gap-1">
@@ -262,7 +264,7 @@ function DrawerBody({ group, initialStore, onClose }) {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col gap-4 p-6">
+      <div className="flex-1 flex flex-col gap-4 px-6 pb-6 pt-2">
         {!app ? (
           <div className="bg-surface rounded-[20px] p-6 text-[13.5px] text-ink-2">This app isn't on {store === 'apple' ? 'the App Store' : 'Google Play'} in any connected account.</div>
         ) : !c ? (

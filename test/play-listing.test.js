@@ -193,3 +193,21 @@ test('gmail: support-ticket replies are not review results', async () => {
   assert.equal(parsePlayEmail({ subject: 'Re: [5-7491000042269] Google Play Developer Support Survey', body: 'approved' }, known).status, null);
   assert.equal(parsePlayEmail({ subject: 'Your changes are ready to publish', body: 'arkIQ (com.wmt.arkiq.android)' }, known).status, 'READY_TO_PUBLISH');
 });
+
+test('review time stops at approval, not when the build goes live', async () => {
+  const { tracker, key, store } = setup();
+  const H = 3_600_000;
+  const t0 = Date.now() - 100 * H;
+  const up = (status, at) => tracker.update(key, 'production', { version: '193 (1.3.80)', status, at, extra: { versionCodes: '193', releaseStatus: 'completed' } });
+  await up('SENT_FOR_REVIEW', t0);
+  await up('IN_REVIEW', t0 + 2 * H);
+  await up('READY_TO_PUBLISH', t0 + 6 * H);
+  await up('LIVE', t0 + 96 * H);
+  assert.equal(store.data.channels[key].production.reviewMs, 6 * H);
+  const dash = buildDashboard(store.data, [{ id: 'p', name: 'Play', store: 'google' }]);
+  assert.equal(dash.apps.find((a) => a.key === key).channels.production.reviewMs, 6 * H);
+  // older saved state with the wrong stored value is corrected from the history
+  store.data.channels[key].production.reviewMs = 96 * H;
+  const dash2 = buildDashboard(store.data, [{ id: 'p', name: 'Play', store: 'google' }]);
+  assert.equal(dash2.apps.find((a) => a.key === key).channels.production.reviewMs, 6 * H);
+});

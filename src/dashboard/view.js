@@ -27,6 +27,7 @@ export function buildDashboard(data, accounts, { now = Date.now(), stuckHours = 
       const s = chState[ch];
       const d = describe(app.store, ch, s.status);
       const elapsed = s.submittedAt && isPending(d.category) ? now - s.submittedAt : null;
+      const reviewMs = reviewTook(data.history?.[app.key], ch, s.version, s.reviewMs);
       const c = {
         channel: ch,
         channelLabel: channelLabel(ch),
@@ -39,7 +40,7 @@ export function buildDashboard(data, accounts, { now = Date.now(), stuckHours = 
         since: s.since,
         submittedAt: s.submittedAt || null,
         elapsedMs: elapsed,
-        reviewMs: s.reviewMs || null,
+        reviewMs,
         stuck: elapsed != null && elapsed > stuckHours * 3_600_000,
         reason: s.reason || null,
         liveVersion: s.extra?.liveVersion || null,
@@ -165,6 +166,25 @@ export function buildDashboard(data, accounts, { now = Date.now(), stuckHours = 
     activity: buildActivity(data, accById, now),
     stats: buildStats(data, now),
   };
+}
+
+/**
+ * Submission → first result (approved / rejected / live) for this version, from the history.
+ * The review clock stops at approval; publishing later doesn't add to it. Falls back to the stored value.
+ */
+export function reviewTook(history, channel, version, stored) {
+  const hs = (history || []).filter((h) => h.channel === channel && h.version === version && h.kind !== 'listing').sort((a, b) => a.at - b.at);
+  let start = null;
+  let took = null;
+  for (const h of hs) {
+    const cat = describe(channel === 'appstore' || channel === 'testflight' ? 'apple' : 'google', channel, h.to).category;
+    if (isPending(cat)) start ??= h.at;
+    else if (start != null && ['approved', 'live', 'rejected', 'removed', 'action'].includes(cat)) {
+      took = h.at - start;
+      start = null;
+    }
+  }
+  return took ?? stored ?? null;
 }
 
 /** Latest status changes across every app (newest first). */

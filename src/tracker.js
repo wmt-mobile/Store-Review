@@ -127,7 +127,10 @@ export class Tracker {
       status,
       since: at,
       submittedAt: subAt,
-      reviewMs: subAt && isTerminal(to.category) ? at - subAt : null,
+      // review time stops at approval: approved → live keeps the time it took to get approved
+      reviewMs: subAt && isTerminal(to.category)
+        ? (to.category === 'live' && from?.category === 'approved' && !versionChanged ? prev.reviewMs || (prev.since ? prev.since - subAt : null) : at - subAt)
+        : null,
       reason: reason || ((to.category === 'rejected' || to.category === 'action') && !versionChanged ? prev?.reason : null) || null,
       extra: extra || undefined,
     };
@@ -256,7 +259,7 @@ export class Tracker {
         category: to.category,
         since: at,
         submittedAt: subAt,
-        reviewMs: subAt && isTerminal(to.category) ? at - subAt : null,
+        reviewMs: subAt && isTerminal(to.category) ? (to.category === 'live' && from?.category === 'approved' ? prevL.reviewMs || prevL.since - subAt : at - subAt) : null,
         reason: reason || (bad && prevL?.reason) || null,
         // what was changed (from "Sent content change for review" on the dashboard), kept until it's published
         note: extra.note || (prevL && prevL.category !== 'live' ? prevL.note : null) || null,
