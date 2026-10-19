@@ -34,7 +34,9 @@ export function uiRouter({ store, mode, pushStore = new PushStore(mode) }) {
     const k = checkKey(req, res);
     if (!k) return;
     const note = String(req.body?.note || '').slice(0, 200);
-    const ch = store.data.channels[k.app.key]?.[k.channel];
+    const bch = store.data.channels[k.app.key]?.[k.channel];
+    // "…|listing" = a Google Play store-listing / app-content review on that channel
+    const ch = k.key.endsWith('|listing') ? { reason: bch?.extra?.listing?.reason, extra: { ai: bch?.extra?.listing?.ai } } : bch;
     (meta().resolved ||= {})[k.key] = { at: Date.now(), by: actor(req), note: note || ch?.extra?.ai?.title || ch?.reason?.split('\n')[0]?.slice(0, 120) || '', appName: k.app.name, store: k.app.store, version: k.key.split('|')[2] };
     // keep the list short
     const entries = Object.entries(meta().resolved).sort((a, b) => b[1].at - a[1].at).slice(0, 50);

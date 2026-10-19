@@ -88,7 +88,7 @@ export class PushStore {
 }
 
 /** Title/body for one status change, matching the design's notification copy. */
-export function pushMessage({ app, channel, version, to, extra, submittedAt, at = Date.now(), event, elapsedMs }) {
+export function pushMessage({ app, channel, version, to, extra, submittedAt, at = Date.now(), event, elapsedMs, listing = false }) {
   const d = describe(app.store, channel, to);
   const store = app.store === 'apple' ? 'App Store' : 'Google Play';
   const platform = app.store === 'apple' ? 'iOS' : 'Android';
@@ -103,6 +103,18 @@ export function pushMessage({ app, channel, version, to, extra, submittedAt, at 
     rejected: [`${app.name} rejected`, `${store} · ${v} · ${d.label}${extra?.ai ? '. AI summary ready' : ''}`],
     stuck: [`${app.name} over limit`, `${store} · ${v} has been in review ${fmtDuration(elapsedMs || 0)}. Consider an expedited review.`],
   }[ev];
+  if (listing && T) {
+    // store-listing / app-content change: no build involved
+    const L = {
+      sent: `${app.name} store listing sent for review`,
+      in_review: `${app.name} store listing in review`,
+      approved: `${app.name} store listing approved`,
+      live: `${app.name} store listing changes published`,
+      rejected: `${app.name} store listing rejected`,
+    }[ev];
+    const what = ev === 'rejected' ? `${d.label}${extra?.ai ? '. AI summary ready' : ''}` : ev === 'approved' ? 'Ready to publish in Play Console' : 'Listing / app content change · no new build';
+    return L ? { event: ev, title: L, body: `${store} · ${what}` } : null;
+  }
   return T ? { event: ev, title: T[0], body: T[1] } : null;
 }
 

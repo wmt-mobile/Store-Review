@@ -1,10 +1,10 @@
 // App history drawer (pen.dev frame AmKza): per-store status card, timeline for the current version, older releases.
 import { useEffect, useMemo, useState } from 'react';
 import { X, BellOff, Bell, ExternalLink, Package, ChevronDown, Copy, MessageSquare } from 'lucide-react';
-import { AppIcon, Pill, StoreIcon, cx } from './ui.jsx';
+import { AppIcon, ListingStrip, Pill, StoreIcon, cx } from './ui.jsx';
 import { useData, useUi } from '../lib/store.jsx';
 import { api, patch } from '../lib/api.js';
-import { ago, date, dateTime, dayKey, dur, time, tz } from '../lib/format.js';
+import { ago, date, dateTime, dayKey, dur, time, tz, whenShort } from '../lib/format.js';
 import { TONE, isAttention, isPending, statusLabel } from '../lib/model.js';
 import { pillFor } from '../pages/review/parts.jsx';
 
@@ -241,6 +241,19 @@ function DrawerBody({ group, initialStore, onClose }) {
                 <div className={cx('text-[15px] font-extrabold whitespace-nowrap', c.stuck ? 'text-red' : 'text-ink')}>{isPending(c.category) ? dur(c.elapsedMs) : c.reviewMs ? dur(c.reviewMs) : current?.tookMs ? dur(current.tookMs) : '—'}</div>
               </StatTile>
             </div>
+            {c.listing && (
+              <div className="flex flex-col gap-2 p-[14px] rounded-[14px] bg-surface-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <ListingStrip listing={c.listing} className="flex-1" />
+                  <span className="text-[11.5px] font-semibold text-ink-3 whitespace-nowrap">{whenShort(c.listing.since)}</span>
+                </div>
+                <div className="text-[12.5px] font-medium text-ink-2">
+                  Listing / app content change reviewed without a new build — the {c.version} build above is unchanged.
+                  {c.listing.reviewMs ? ` Review took ${dur(c.listing.reviewMs)}.` : c.listing.elapsedMs ? ` In review for ${dur(c.listing.elapsedMs)}.` : ''}
+                </div>
+                {(c.listing.ai?.title || c.listing.reason) && <div className="text-[12.5px] font-semibold text-red">{c.listing.ai?.title || c.listing.reason}</div>}
+              </div>
+            )}
           </section>
         )}
 

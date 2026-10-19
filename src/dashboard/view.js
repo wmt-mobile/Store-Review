@@ -50,6 +50,40 @@ export function buildDashboard(data, accounts, { now = Date.now(), stuckHours = 
           : {}),
         url: consoleLinks(app, account, ch)[0]?.url,
       };
+      // Google Play store-listing / app-content review (no new build), shown next to the build status
+      const L = s.extra?.listing;
+      if (L && !(L.category === 'live' && now - L.since > 7 * 86_400_000)) {
+        const ld = describe(app.store, ch, L.status);
+        const lElapsed = L.submittedAt && isPending(ld.category) ? now - L.submittedAt : null;
+        c.listing = {
+          status: L.status,
+          label: ld.category === 'live' ? 'Changes published' : ld.label,
+          category: ld.category,
+          since: L.since,
+          submittedAt: L.submittedAt || null,
+          elapsedMs: lElapsed,
+          reviewMs: L.reviewMs || null,
+          reason: L.reason || null,
+          emailUrl: L.emailUrl || null,
+          ...(['rejected', 'action', 'removed'].includes(ld.category) ? { ai: L.ai || null, messageId: L.messageId || null, mailSubject: L.mailSubject || null } : {}),
+        };
+        const lrow = {
+          appKey: app.key, appName: app.name, iconUrl: app.iconUrl, store: app.store, accountId: app.accountId, accountName: account?.name || app.accountId,
+          channel: ch, channelLabel: 'Store listing', version: 'Store listing', rawVersion: 'listing', liveBuild: c.version, listing: true,
+          status: L.status, label: c.listing.label, emoji: ld.emoji, category: ld.category, since: L.since, submittedAt: c.listing.submittedAt,
+          elapsedMs: lElapsed, reviewMs: c.listing.reviewMs, stuck: lElapsed != null && lElapsed > stuckHours * 3_600_000,
+          reason: c.listing.reason, emailUrl: c.listing.emailUrl, ai: c.listing.ai || null, messageId: c.listing.messageId || null, mailSubject: c.listing.mailSubject || null,
+          url: c.url,
+        };
+        if (isPending(ld.category)) {
+          pending.push(lrow);
+          if (ld.category === 'in_review') summary.inReview++;
+          else summary.waiting++;
+        } else if (['rejected', 'action', 'removed'].includes(ld.category)) {
+          attention.push(lrow);
+          summary.attention++;
+        }
+      }
       channels[ch] = c;
       if (CATEGORY_ORDER.indexOf(d.category) < CATEGORY_ORDER.indexOf(best)) best = d.category;
 
@@ -81,7 +115,7 @@ export function buildDashboard(data, accounts, { now = Date.now(), stuckHours = 
       history: (data.history?.[app.key] || []).filter((h) => isRelease(h.channel)).slice(0, 20).map((h) => {
         const to = describe(app.store, h.channel, h.to);
         const from = h.from ? describe(app.store, h.channel, h.from) : null;
-        return { ...h, channelLabel: channelLabel(h.channel), toLabel: `${to.emoji} ${to.label}`, fromLabel: from ? `${from.emoji} ${from.label}` : null, category: to.category };
+        return { ...h, ...(h.kind === 'listing' ? { version: 'Store listing' } : {}), listing: h.kind === 'listing', channelLabel: h.kind === 'listing' ? 'Store listing' : channelLabel(h.channel), toLabel: `${to.emoji} ${to.label}`, fromLabel: from ? `${from.emoji} ${from.label}` : null, category: to.category };
       }),
     });
   }
@@ -142,7 +176,7 @@ function buildActivity(data, accById, now, limit = 120) {
       const to = describe(app.store, h.channel, h.to);
       const from = h.from ? describe(app.store, h.channel, h.from) : null;
       out.push({
-        id: `${app.key}|${h.channel}|${h.at}|${h.to}`,
+        id: `${app.key}|${h.channel}|${h.at}|${h.to}${h.kind === 'listing' ? '|listing' : ''}`,
         at: h.at,
         appKey: app.key,
         appName: app.name,
@@ -152,8 +186,8 @@ function buildActivity(data, accById, now, limit = 120) {
         accountName: accById[app.accountId]?.name || app.accountId,
         channel: h.channel,
         channelLabel: channelLabel(h.channel),
-        version: h.version ? displayVersion(app.store, h.version, h.version === data.channels?.[app.key]?.[h.channel]?.version ? data.channels[app.key][h.channel].extra : {}) : '',
-        rawVersion: h.version || '',
+        version: h.kind === 'listing' ? 'Store listing' : h.version ? displayVersion(app.store, h.version, h.version === data.channels?.[app.key]?.[h.channel]?.version ? data.channels[app.key][h.channel].extra : {}) : '',
+        rawVersion: h.kind === 'listing' ? 'listing' : h.version || '',
         userFraction: h.to === 'ROLLOUT' && h.version === data.channels?.[app.key]?.[h.channel]?.version ? data.channels[app.key][h.channel].extra?.userFraction ?? null : null,
         status: h.to,
         fromStatus: h.from || null,
@@ -162,6 +196,7 @@ function buildActivity(data, accById, now, limit = 120) {
         emoji: to.emoji,
         fromLabel: from?.label || null,
         reason: h.reason || null,
+        listing: h.kind === 'listing',
       });
     }
   }
@@ -183,7 +218,7 @@ function buildStats(data, now) {
   let submitted7 = 0;
   for (const app of Object.values(data.apps || {})) {
     if (app.hidden) continue;
-    const hist = (data.history?.[app.key] || []).filter((h) => isRelease(h.channel)).sort((a, b) => a.at - b.at);
+    const hist = (data.history?.[app.key] || []).filter((h) => isRelease(h.channel) && h.kind !== 'listing').sort((a, b) => a.at - b.at);
     const start = {};
     for (const h of hist) {
       const cat = describe(app.store, h.channel, h.to).category;

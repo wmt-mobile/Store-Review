@@ -16,6 +16,7 @@ All templates are in **`src/chat.js`**, plus the "connected" message in `src/adm
 
 | Message | Function | What to edit |
 |---|---|---|
+| Play store-listing / app-content review | `statusCard({ listing: true })`, headlines in `LISTING_HEADLINE` (`src/chat.js`) | "🗂️ Change · Store listing / app content · no new build" and "📦 Live build" rows |
 | Store status change | `statusCard()` in `src/chat.js` | Follows the design's "Google Chat card kit": headline (`HEADLINE`: 📨 Sent for review, 🔎 In review, ☑️ Approved · ready to publish, 🚀 Live · staged rollout, 🚫 Rejected), "app · store" line, label/value rows (📦 Version, ⏱️ Review took, 🕒 Waited, 🔁 From, 📈 Rollout, 💼 Account), ✨ AI summary for rejections, then the action links (Publish in Play Console / Open in Review Radar / View email / Mark resolved) and the full email |
 | Links into the dashboard | `radarLink()` in `src/chat.js` | Uses `PUBLIC_BASE_URL`; `/dashboard/apps?app=…` opens the app drawer, `/dashboard/attention?email=…` opens the email, `?resolve=…` marks it resolved |
 | @all on rejections | `prefs.mentionAll` (Setup → Google Chat) | Adds `<users/all> Rejection on … — summary below 👇` above rejection messages |
@@ -67,6 +68,12 @@ The rules are in **`Tracker.update()`** in `src/tracker.js`:
 - **Only release channels are shown and posted:** the App Store and Google Play **production** (`RELEASE_CHANNELS` in `src/status-map.js`). TestFlight and the Play testing tracks (open `beta`, closed `alpha`, `internal`) are hidden from the dashboard and never posted. To bring them back, add their names to `RELEASE_CHANNELS`.
 - Drafts and internal-only states ("Prepare for submission", "Ready for beta submission", "Internal testing") are never posted (`SILENT_CATEGORIES`).
 - A change to a **new status** or **new version** is posted.
+- **Google Play: build vs store listing.** Play also reviews store-listing and app-content changes (description, screenshots, Data safety, content rating, policy forms) that have no new build. `meta.playCycle[appKey]` remembers the versionCodes of the last release. That "build cycle" is open from the moment new codes appear until the release is fully `LIVE`.
+  - While a cycle is open, results (emails and the release lifecycle) go to the build as before.
+  - Once it's closed, any new review result is a listing change. `tracker.updateListing()` stores it as `channels[app].production.extra.listing` and leaves the build's status and version alone. It posts as "📝 Store listing update · In review / Approved / Rejected" and "✅ Store listing changes published", with no build number. Rejections keep the AI summary and the full email.
+  - The dashboard shows it as a "Store listing" pill next to the build, a separate card on In review and Needs attention, and entries in the history, Activity and bell.
+  - App removals always stay on the build.
+  - The routing is in `pollGmail()` (`src/google/gmail.js`) and `listingFromLifecycle()` (`src/google/play.js`).
 - The first time a channel is seen, it is posted, **except** for a brand-new app that is simply already live.
 - Nothing is posted during an account's **quiet first sync** (`silentFirstRun`).
 - Nothing is posted for apps that are **not watched** or are **muted** (Manage apps).

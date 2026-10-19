@@ -59,6 +59,14 @@ function toItem(a, M) {
   const sName = storeName(a.store);
   let title;
   let body;
+  if (a.listing) {
+    // Google Play store-listing / app-content review (no new build)
+    const what = { approved: 'approved · ready to publish', in_review: 'in review', submitted: 'sent for review', live: 'changes published', rejected: 'rejected' }[cat];
+    if (!what) return null;
+    title = `${short(a.appName)} store listing ${what}`;
+    body = `${sName} · listing / app content · no new build${cat === 'rejected' && a.reason ? ` · ${a.reason}` : ''}`;
+    return { id: a.id, at: a.at, cat, event: EVENT[a.category], title, body, appName: a.appName, iconUrl: a.iconUrl, appKey: a.appKey, store: a.store };
+  }
   if (cat === 'approved') {
     title = `${short(a.appName)} approved · ready to publish`;
     body = `${sName} · ${a.version}${current && ch.reviewMs ? ` · review took ${dur(ch.reviewMs)}` : ''}`;

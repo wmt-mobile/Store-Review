@@ -12,13 +12,28 @@ const APPS = [
   ['wmt-apple', '6443471885', 'Telfon - Calls & Chats', 'com.webmob.telfon', { appstore: ['WAITING_FOR_REVIEW', '1.0.55', 2.23, 2.23, null, { build: '193', liveVersion: '1.0.54' }] }],
   ['wmt-play', 'com.webmob.telfon', 'Telfon - Calls & Chats', 'com.webmob.telfon', { production: ['READY_TO_PUBLISH', '193 (1.3.80)', 0.9, 7.57, null, { versionCodes: '193', releaseStatus: 'completed' }] }],
   ['wmt-apple', '6752694595', 'Qwik - AI Clothes Changer', 'com.webmob.qwik', { appstore: ['IN_REVIEW', '1.1.4', 1.13, 1.9, null, { build: '52', liveVersion: '1.1.3' }] }],
-  ['wmt-play', 'com.webmob.qwik', 'Qwik - AI Clothes Changer', 'com.webmob.qwik', { production: ['ROLLOUT', '30 (1.1.3)', 20, 30, null, { versionCodes: '30', releaseStatus: 'inProgress', userFraction: 0.2 }] }],
+  ['wmt-play', 'com.webmob.qwik', 'Qwik - AI Clothes Changer', 'com.webmob.qwik', { production: ['LIVE', '30 (1.1.3)', 50, 70, null, { versionCodes: '30', releaseStatus: 'completed' }] }],
   ['wmt-apple', '6450891336', 'QuestnQuiz', 'com.webmob.questnquiz', { appstore: ['WAITING_FOR_REVIEW', '1.0.3', 0.8, 0.8, null, { build: '24', liveVersion: '1.0.2' }] }],
   ['wmt-play', 'com.webmob.questnquiz', 'QuestnQuiz', 'com.webmob.questnquiz', { production: ['IN_REVIEW', '24 (1.0.3)', 3.68, 3.68, null, { versionCodes: '24', releaseStatus: 'completed' }] }],
   ['wmt-apple', '6504763982', 'Dwell Buddy Manager', 'com.webmob.dwellbuddy', { appstore: ['PREPARE_FOR_SUBMISSION', '1.0.0', 30, null, null, { build: '1' }] }],
   ['wmt-play', 'com.webmob.dwellbuddy', 'Dwell Buddy Manager', 'com.webmob.dwellbuddy', { production: ['POLICY_ACTION', '3 (1.0.0)', 2.1, 20, 'Issue found: Missing Permissions Declaration Form', { versionCodes: '3', releaseStatus: 'completed' }] }],
   ['wmt-apple', '6456385009', 'TrooPoo', 'com.webmob.troopoo', { appstore: ['IN_REVIEW', '2.4.0', 5, 26.2, null, { build: '88', liveVersion: '2.3.1' }] }],
   ['wmt-play', 'com.webmob.troopoo', 'TrooPoo', 'com.webmob.troopoo', { production: ['REJECTED', '87 (2.4.0)', 17, 40, "Families policy: ads SDK isn't Families-certified", { versionCodes: '87', releaseStatus: 'completed' }] }],
+  ['wmt-play', 'com.webmob.beaconify', 'Beaconify', 'com.webmob.beaconify', { production: ['LIVE', '12 (2.1.0)', 120, 150, null, { versionCodes: '12', releaseStatus: 'completed' }] }],
+];
+
+// Store-listing / app-content reviews on live Play builds (no new build): [appKey, [[status, hoursAgo, reason?]…], extra?]
+const LISTING = [
+  ['google:wmt-play:com.webmob.beaconify', [['IN_REVIEW', 5.2]]],
+  ['google:wmt-play:com.webmob.qwik', [['IN_REVIEW', 30], ['REJECTED', 6, 'Data safety: location data not declared']], {
+    mailSubject: 'Action required: Your app Qwik - AI Clothes Changer (com.webmob.qwik) was not approved',
+    ai: {
+      title: 'Data safety form doesn’t declare location data',
+      issues: ['The store listing update says the app collects approximate location, but the Data safety form doesn’t declare it.'],
+      fixes: ['Play Console → App content → Data safety: add Approximate location (collected, not shared), then send the changes for review again. No new build needed.'],
+      deadline: null,
+    },
+  }],
 ];
 
 const ch_tf = (chans) => Boolean(chans.testflight);
@@ -88,6 +103,21 @@ export function loadDemoData(store) {
       deadline: 'Oct 23, 2026',
     },
   };
+  for (const [key, steps, mail] of LISTING) {
+    const ch = d.channels[key]?.production;
+    if (!ch) continue;
+    let prev = null;
+    let sub = null;
+    for (const [status, ago, reason] of steps) {
+      const at = now - ago * H;
+      if (status === 'IN_REVIEW') sub ??= at;
+      const cat = status === 'IN_REVIEW' ? 'in_review' : status === 'REJECTED' ? 'rejected' : status === 'LIVE' ? 'live' : 'approved';
+      ch.extra.listing = { status, category: cat, since: at, submittedAt: sub, reviewMs: cat === 'in_review' ? null : at - sub, reason: reason || null, ...(cat === 'rejected' ? mail : {}) };
+      d.history[key].unshift({ at, channel: 'production', version: ch.version, from: prev, to: status, reason: reason || null, kind: 'listing' });
+      prev = status;
+    }
+    d.history[key].sort((a, b) => b.at - a.at);
+  }
   d.accounts.gmail = { lastPollAt: now - 90_000 };
   // last 24 checks per account (Accounts screen) – Play's last two failed like the design
   const M5 = 5 * 60_000;
