@@ -24,7 +24,7 @@ function Glyph({ app, size = 32, r = 9, muted }) {
   );
 }
 
-const NAV = [['Product', '#product'], ['How it works', '#how'], ['Google Chat', '#chat'], ['Notifications', '#chat'], ['Pricing', '#pricing'], ['FAQ', '#faq']];
+const NAV = [['Product', '#product'], ['How it works', '#how'], ['Google Chat', '#chat'], ['Notifications', '#chat'], ['FAQ', '#faq']];
 
 function Nav() {
   const [open, setOpen] = useState(false);
@@ -307,43 +307,6 @@ function Testimonial() {
   );
 }
 
-function Pricing() {
-  const P = [
-    { n: 'Starter', p: '$0', per: '/ forever', d: 'For indie devs shipping a couple of apps.', cta: 'Start free', f: ['1 developer account', 'Up to 5 apps', 'Google Chat posts', 'Checks every 15 min'] },
-    { n: 'Team', p: '$29', per: '/ account / mo', d: 'For mobile teams that ship every week.', cta: 'Start 14-day trial', f: ['Unlimited apps', 'Checks every 5 min', 'AI rejection summaries', 'Stuck-in-review alerts', 'iOS & Android push'], hot: true },
-    { n: 'Agency', p: '$99', per: '/ mo', d: 'For studios managing many client accounts.', cta: 'Talk to us', f: ['Up to 15 accounts', 'Per-client Chat spaces', 'Audit log & SSO', 'Priority support'] },
-  ];
-  return (
-    <section id="pricing" className="bg-[#EDEFE9] scroll-mt-4">
-      <div className="max-w-[1440px] mx-auto px-5 sm:px-10 lg:px-[120px] pb-20 lg:pb-[120px] flex flex-col gap-12">
-        <div className="flex flex-col items-center gap-[14px] text-center"><Eyebrow>Pricing</Eyebrow><H2>Simple, per-account pricing.</H2><p className="text-[17px] font-medium text-[#61655C]">Every plan includes both stores, Google Chat posts and the mobile app.</p></div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {P.map((x) => (
-            <div key={x.n} className={cx('flex flex-col gap-6 p-8 rounded-[28px]', x.hot ? 'bg-[#0F110C] shadow-[0_30px_60px_rgba(15,17,12,.25)]' : 'bg-white')}>
-              <div className="flex items-center justify-between"><span className={cx('text-[18px] font-extrabold', x.hot ? 'text-white' : 'text-[#0F110C]')}>{x.n}</span>{x.hot && <span className="px-[10px] py-1 rounded-full bg-accent text-[11.5px] font-extrabold text-[#0F110C]">Most teams</span>}</div>
-              <div className="flex items-end gap-1.5"><span className={cx('text-[48px] leading-[48px] font-extrabold tracking-[-1.5px]', x.hot ? 'text-white' : 'text-[#0F110C]')}>{x.p}</span><span className={cx('text-[14px] font-semibold pb-1', x.hot ? 'text-white/60' : 'text-[#61655C]')}>{x.per}</span></div>
-              <p className={cx('text-[14.5px] leading-[22px] font-medium', x.hot ? 'text-white/60' : 'text-[#61655C]')}>{x.d}</p>
-              <a href={GO} className={cx('h-[50px] inline-flex items-center justify-center rounded-[14px] text-[15px] font-extrabold', x.hot ? 'bg-accent text-[#0F110C]' : 'ring-[1.5px] ring-inset ring-[#0F110C] text-[#0F110C] hover:bg-[#F4F5F0]')}>{x.cta}</a>
-              <div className={cx('h-px', x.hot ? 'bg-white/10' : 'bg-[#E3E5DD]')} />
-              <ul className="flex flex-col gap-3">
-                {x.f.map((f) => <li key={f} className={cx('flex items-center gap-3 text-[14.5px] font-medium', x.hot ? 'text-white/80' : 'text-[#3A3D35]')}><Check size={15} className={x.hot ? 'text-accent' : 'text-[#4F6B00]'} />{f}</li>)}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-const QA = [
-  ['Can Review Radar change or publish my apps?', 'No. It only uses read-only access: an App Store Connect API key with the Developer role and a Play service account with “View app information”. Publishing stays in your hands.'],
-  ['How fast are status changes detected?', 'The stores are checked every few minutes (five by default, down to one), and every change is posted to Google Chat as soon as it’s seen — usually within five minutes of it happening.'],
-  ['Where do the AI rejection summaries come from?', 'From the rejection email Google sends to your shared mailbox. Review Radar reads it and turns it into the issue, what’s wrong, how to fix it and the deadline — using only facts in the email.'],
-  ['Do you support Slack or Microsoft Teams?', 'Not yet — Review Radar posts to Google Chat today. The dashboard and browser notifications work for everyone on the team regardless.'],
-  ['What happens to our keys if we cancel?', 'Removing an account deletes its encrypted key and its apps from Review Radar straight away. You can also revoke the key in App Store Connect or Google Cloud at any time.'],
-];
-
 function Faq() {
   const [open, setOpen] = useState(0);
   return (
@@ -380,7 +343,7 @@ function FinalCta() {
         <div className="relative overflow-hidden flex flex-col items-center gap-7 px-6 sm:px-16 py-16 sm:py-20 rounded-[36px] bg-accent text-center">
           <Mark size={440} className="absolute -right-[10%] lg:left-[73%] -top-[60px] text-[#0F110C]/[.09] pointer-events-none" />
           <h2 className="relative text-[36px] leading-[40px] sm:text-[60px] sm:leading-[61px] font-extrabold tracking-[-2px] text-[#0F110C]">Stop refreshing consoles. <br className="hidden sm:block" />Start shipping.</h2>
-          <p className="relative text-[16px] sm:text-[18px] font-semibold text-[#0F110C]/70">Connect your first store in under four minutes. Free for up to 5 apps.</p>
+          <p className="relative text-[16px] sm:text-[18px] font-semibold text-[#0F110C]/70">Connect your first store in under four minutes.</p>
           <div className="relative flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
             <a href={GO} className="h-14 inline-flex items-center justify-center gap-[10px] px-[26px] rounded-[16px] bg-[#0F110C] text-[16.5px] font-extrabold text-white">Start monitoring — free <ArrowRight size={17} className="text-accent" /></a>
             <a href="mailto:hello@reviewradar.app?subject=Review%20Radar%20demo" className="h-14 inline-flex items-center justify-center px-[22px] rounded-[16px] ring-[1.5px] ring-inset ring-[#0F110C] text-[16.5px] font-extrabold text-[#0F110C]">Book a demo</a>
@@ -393,7 +356,7 @@ function FinalCta() {
 
 function Footer() {
   const cols = [
-    ['Product', [['Overview', GO], ['Pipeline', '/dashboard/review'], ['AI summaries', '/dashboard/attention'], ['Mobile app', '#chat'], ['Pricing', '#pricing']]],
+    ['Product', [['Overview', GO], ['Pipeline', '/dashboard/review'], ['AI summaries', '/dashboard/attention'], ['Mobile app', '#chat']]],
     ['Integrations', [['App Store Connect', '#how'], ['Google Play Console', '#how'], ['Google Chat', '#chat'], ['Gmail', '#faq']]],
     ['Company', [['About', '#product'], ['Changelog', '#product'], ['Security', '#faq'], ['Contact', 'mailto:hello@reviewradar.app']]],
   ];
@@ -433,7 +396,6 @@ export default function Landing() {
       <Features />
       <ChatSection />
       <Testimonial />
-      <Pricing />
       <Faq />
       <FinalCta />
       <Footer />
