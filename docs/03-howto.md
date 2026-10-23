@@ -99,8 +99,6 @@ Each request and reset is recorded in the audit log ("Requested password reset",
 
 If the redirect URL is missing, Supabase sends people to the Site URL instead. The sign-in page spots the recovery token and forwards to `/reset-password`, so this still works as long as the Site URL is correct.
 
-**Fallback while the Site URL is wrong:** in the email, right-click **Reset Password → Copy link address** (don't open it). Paste it on `/reset-password` ("Email link opened the wrong page?") and the server redeems the token with `POST /auth/v1/verify`. Pasting the localhost address the link opened also works, as long as that page didn't show an error.
-
 The built-in Supabase mailer only delivers to members of the Supabase organisation. For other addresses, set up custom SMTP under Authentication → Emails → SMTP Settings. The email wording is under Authentication → Emails → Templates → **Reset password**.
 
 ### Change a password as an admin *(Supabase)*

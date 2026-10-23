@@ -62,20 +62,3 @@ test('reset: expired token, short password, same password', async () => {
   mockFetch(() => [200, { email: 'other@example.com' }]);
   assert.equal((await resetPassword('tok', 'newpassword1', '3.3.3.4')).expired, true);
 });
-
-test('reset: pasted email link is redeemed with Supabase verify', async () => {
-  const { exchangeRecoveryLink } = await import('../src/auth.js');
-  const calls = mockFetch(() => [200, { access_token: 'sess-tok' }]);
-  const r = await exchangeRecoveryLink('https://example.supabase.co/auth/v1/verify?token=abc123&type=recovery&redirect_to=http://localhost:3000', '4.4.4.4');
-  assert.deepEqual(r, { ok: true, accessToken: 'sess-tok' });
-  assert.equal(calls[0].url, 'https://example.supabase.co/auth/v1/verify');
-  assert.deepEqual(JSON.parse(calls[0].body), { type: 'recovery', token_hash: 'abc123' });
-  // the landed localhost URL with tokens in the hash works without a network call
-  const landed = await exchangeRecoveryLink('http://localhost:3000/#access_token=xyz&type=recovery', '4.4.4.4');
-  assert.deepEqual(landed, { ok: true, accessToken: 'xyz' });
-  const exp = await exchangeRecoveryLink('http://localhost:3000/#error=access_denied&error_code=otp_expired', '4.4.4.4');
-  assert.equal(exp.expired, true);
-  mockFetch(() => [403, { error_code: 'otp_expired' }]);
-  assert.equal((await exchangeRecoveryLink('https://example.supabase.co/auth/v1/verify?token=old&type=recovery', '4.4.4.5')).expired, true);
-  assert.equal((await exchangeRecoveryLink('not a url', '4.4.4.5')).ok, false);
-});
