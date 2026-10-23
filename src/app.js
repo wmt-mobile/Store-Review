@@ -339,7 +339,7 @@ app.get('/status', (req, res) => {
 
 const needsOnboarding = () => MODE === 'supabase' && (!registry.list().length || !settings.bot?.onboarded);
 
-app.get('/', (_req, res) => res.redirect('/dashboard'));
+app.get('/', (_req, res) => res.redirect(useLogin() ? '/login' : '/dashboard'));
 app.get(['/dashboard', '/dashboard/*'], requireDashboard, (_req, res) => {
   if (needsOnboarding()) return res.redirect('/onboarding');
   sendSpa(res, 'page.html');
