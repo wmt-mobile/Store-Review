@@ -1,7 +1,7 @@
 // Public marketing page at "/" (pen.dev "Landing Page — Review Radar"). Every CTA opens /login
 // (signed-in visitors go straight on to the dashboard). Sample apps only, never real app names.
 import { useEffect, useState } from 'react';
-import { ArrowRight, Play, ShieldCheck, Timer, CodeXml, Check, CircleCheck, MessageSquare, Sparkles, BellRing, Terminal, Quote, Plus, Minus, Menu, X } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Timer, CodeXml, Check, CircleCheck, MessageSquare, Sparkles, BellRing, Terminal, Plus, Minus, Menu, X } from 'lucide-react';
 import { AppleLogo, GooglePlayLogo, PhoneCall, TShirt, Question, HouseLine, PawPrint, GoogleChromeLogo } from '@phosphor-icons/react';
 import { LogoTile, Mark, Pill, cx } from '../components/ui.jsx';
 import { Shot, Eyebrow, H2 } from './landing/bits.jsx';
@@ -35,13 +35,12 @@ function Nav() {
         {NAV.map(([l, h]) => <a key={l} href={h} className="text-[14.5px] font-semibold text-white/70 hover:text-white">{l}</a>)}
       </div>
       <div className="flex-1 lg:hidden" />
-      <a href={GO} className="hidden sm:inline text-[14.5px] font-bold text-white">Sign in</a>
-      <a href={GO} className="hidden sm:inline-flex h-[42px] items-center gap-2 px-[18px] rounded-[12px] bg-accent text-[#0F110C] text-[14.5px] font-extrabold">Start free <ArrowRight size={16} /></a>
+            <a href={GO} className="hidden sm:inline-flex h-[42px] items-center gap-2 px-[18px] rounded-[12px] bg-accent text-[#0F110C] text-[14.5px] font-extrabold">Sign in <ArrowRight size={16} /></a>
       <button className="lg:hidden text-white" aria-label="Menu" onClick={() => setOpen((o) => !o)}>{open ? <X size={24} /> : <Menu size={24} />}</button>
       {open && (
         <div className="lg:hidden absolute top-[84px] inset-x-4 z-20 flex flex-col gap-1 p-3 rounded-[18px] bg-[#1A1C16] ring-1 ring-white/10">
           {NAV.map(([l, h]) => <a key={l} href={h} onClick={() => setOpen(false)} className="px-3 py-2.5 rounded-[10px] text-[15px] font-semibold text-white/80 hover:bg-white/5">{l}</a>)}
-          <a href={GO} className="mt-1 h-11 inline-flex items-center justify-center rounded-[12px] bg-accent text-[#0F110C] text-[15px] font-extrabold">Start free</a>
+          <a href={GO} className="mt-1 h-11 inline-flex items-center justify-center rounded-[12px] bg-accent text-[#0F110C] text-[15px] font-extrabold">Sign in</a>
         </div>
       )}
     </nav>
@@ -74,8 +73,8 @@ function Hero() {
         <h1 className="text-[44px] leading-[48px] sm:text-[60px] sm:leading-[64px] lg:text-[76px] lg:leading-[78px] font-extrabold tracking-[-2px] lg:tracking-[-3px] text-white">Know the minute your <br className="hidden sm:block" />app is approved.</h1>
         <p className="max-w-[700px] text-[16px] leading-[25px] sm:text-[19px] sm:leading-[29px] font-medium text-white/65">Review Radar watches every build in App Store Connect and Google Play Console, posts each status change to Google Chat, and explains rejections in plain English — so nobody on your team refreshes a console again.</p>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2 w-full sm:w-auto">
-          <a href={GO} className="h-14 inline-flex items-center justify-center gap-[10px] px-[26px] rounded-[16px] bg-accent text-[16.5px] font-extrabold text-[#0F110C] shadow-[0_10px_30px_rgba(198,244,50,.25)]">Start monitoring — free <ArrowRight size={18} /></a>
-          <a href="#how" className="h-14 inline-flex items-center justify-center gap-[10px] px-[22px] rounded-[16px] ring-[1.5px] ring-inset ring-white/20 text-[16.5px] font-bold text-white"><Play size={17} /> Watch 2-min demo</a>
+          <a href={GO} className="h-14 inline-flex items-center justify-center gap-[10px] px-[26px] rounded-[16px] bg-accent text-[16.5px] font-extrabold text-[#0F110C] shadow-[0_10px_30px_rgba(198,244,50,.25)]">Open Review Radar <ArrowRight size={18} /></a>
+          <a href="#product" className="h-14 inline-flex items-center justify-center gap-[10px] px-[22px] rounded-[16px] ring-[1.5px] ring-inset ring-white/20 text-[16.5px] font-bold text-white">See what it does</a>
         </div>
         <div className="flex flex-wrap justify-center gap-x-5 gap-y-2">
           {[[ShieldCheck, 'Read-only API keys'], [Timer, '4-minute setup'], [CodeXml, 'No SDK, no code']].map(([I, l]) => (
@@ -292,20 +291,12 @@ function ChatSection() {
   );
 }
 
-function Testimonial() {
-  return (
-    <section className="bg-[#EDEFE9]">
-      <div className="max-w-[1440px] mx-auto px-5 sm:px-10 lg:px-[200px] py-20 lg:py-[120px] flex flex-col items-center gap-8 text-center">
-        <span className="size-14 rounded-[16px] bg-accent inline-flex items-center justify-center text-[#0F110C]"><Quote size={24} /></span>
-        <blockquote className="text-[24px] leading-[34px] sm:text-[34px] sm:leading-[46px] font-bold tracking-[-0.6px] text-[#0F110C]">“We used to check App Store Connect twenty times a day. Now we just wait for the green tick in Google Chat — and when Google rejects a build, the fix is already written out for us.”</blockquote>
-        <div className="flex items-center gap-3 text-left">
-          <span className="size-11 rounded-full bg-[#0F110C] text-accent inline-flex items-center justify-center text-[14px] font-extrabold">RK</span>
-          <span><span className="block text-[15px] font-extrabold text-[#0F110C]">Riya K.</span><span className="block text-[13.5px] font-medium text-[#61655C]">Mobile Lead, WebMobTechnologies</span></span>
-        </div>
-      </div>
-    </section>
-  );
-}
+const QA = [
+  ['Can Review Radar change or publish my apps?', 'No. It only uses read-only access: an App Store Connect API key with the Developer role and a Play service account with “View app information”. Publishing stays in your hands.'],
+  ['How fast are status changes detected?', 'The stores are checked every few minutes (five by default, down to one), and every change is posted to Google Chat as soon as it’s seen — usually within five minutes of it happening.'],
+  ['Where do the AI rejection summaries come from?', 'From the rejection email Google sends to your shared mailbox. Review Radar reads it and turns it into the issue, what’s wrong, how to fix it and the deadline — using only facts in the email.'],
+  ['What happens to the keys when an account is removed?', 'Removing an account deletes its encrypted key and its apps from Review Radar straight away. You can also revoke the key in App Store Connect or Google Cloud at any time.'],
+];
 
 function Faq() {
   const [open, setOpen] = useState(0);
@@ -315,7 +306,6 @@ function Faq() {
         <div className="lg:w-[380px] flex flex-col gap-4">
           <Eyebrow>FAQ</Eyebrow>
           <H2 className="lg:text-[48px] lg:leading-[50px]">Questions, <br className="hidden lg:block" />answered.</H2>
-          <p className="text-[15.5px] leading-6 font-medium text-[#61655C]">Still curious? Email hello@reviewradar.app — a human replies within a day.</p>
         </div>
         <div className="flex-1 flex flex-col">
           {QA.map(([q, a], i) => {
@@ -343,10 +333,9 @@ function FinalCta() {
         <div className="relative overflow-hidden flex flex-col items-center gap-7 px-6 sm:px-16 py-16 sm:py-20 rounded-[36px] bg-accent text-center">
           <Mark size={440} className="absolute -right-[10%] lg:left-[73%] -top-[60px] text-[#0F110C]/[.09] pointer-events-none" />
           <h2 className="relative text-[36px] leading-[40px] sm:text-[60px] sm:leading-[61px] font-extrabold tracking-[-2px] text-[#0F110C]">Stop refreshing consoles. <br className="hidden sm:block" />Start shipping.</h2>
-          <p className="relative text-[16px] sm:text-[18px] font-semibold text-[#0F110C]/70">Connect your first store in under four minutes.</p>
+          <p className="relative text-[16px] sm:text-[18px] font-semibold text-[#0F110C]/70">Every App Store and Google Play review for the team, in one place.</p>
           <div className="relative flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <a href={GO} className="h-14 inline-flex items-center justify-center gap-[10px] px-[26px] rounded-[16px] bg-[#0F110C] text-[16.5px] font-extrabold text-white">Start monitoring — free <ArrowRight size={17} className="text-accent" /></a>
-            <a href="mailto:hello@reviewradar.app?subject=Review%20Radar%20demo" className="h-14 inline-flex items-center justify-center px-[22px] rounded-[16px] ring-[1.5px] ring-inset ring-[#0F110C] text-[16.5px] font-extrabold text-[#0F110C]">Book a demo</a>
+            <a href={GO} className="h-14 inline-flex items-center justify-center gap-[10px] px-[26px] rounded-[16px] bg-[#0F110C] text-[16.5px] font-extrabold text-white">Open Review Radar <ArrowRight size={17} className="text-accent" /></a>
           </div>
         </div>
       </div>
@@ -358,7 +347,6 @@ function Footer() {
   const cols = [
     ['Product', [['Overview', GO], ['Pipeline', '/dashboard/review'], ['AI summaries', '/dashboard/attention'], ['Mobile app', '#chat']]],
     ['Integrations', [['App Store Connect', '#how'], ['Google Play Console', '#how'], ['Google Chat', '#chat'], ['Gmail', '#faq']]],
-    ['Company', [['About', '#product'], ['Changelog', '#product'], ['Security', '#faq'], ['Contact', 'mailto:hello@reviewradar.app']]],
   ];
   return (
     <footer className="bg-[#0F110C]">
@@ -368,7 +356,7 @@ function Footer() {
             <div className="flex items-center gap-[10px]"><LogoTile size={36} /><span className="text-[18px] font-extrabold text-white">Review Radar</span></div>
             <p className="text-[15px] font-medium text-white/50">Every app review, in one place.</p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-10 lg:gap-16">
+          <div className="grid grid-cols-2 gap-10 lg:gap-16">
             {cols.map(([h, ls]) => (
               <div key={h} className="lg:w-[180px] flex flex-col gap-[14px]">
                 <div className="text-[13px] font-extrabold text-white">{h}</div>
@@ -379,7 +367,7 @@ function Footer() {
         </div>
         <div className="flex flex-col sm:flex-row gap-3 justify-between pt-8 border-t border-white/10 text-[13.5px] font-medium text-white/45">
           <span>© {new Date().getFullYear()} Review Radar · Built by WebMobTechnologies</span>
-          <span>Privacy · Terms · <a href="/health" className="hover:text-white">Status</a></span>
+          <a href="/health" className="hover:text-white">Status</a>
         </div>
       </div>
     </footer>
@@ -395,7 +383,6 @@ export default function Landing() {
       <How />
       <Features />
       <ChatSection />
-      <Testimonial />
       <Faq />
       <FinalCta />
       <Footer />
