@@ -332,9 +332,6 @@ function ChatStep({ setup, refresh, onBack, onNext, toast }) {
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState(null);
   const [events, setEvents] = useState(() => ({ submitted: true, in_review: true, approved: true, rejected: true, live: true, ...(setup.prefs?.chatEvents || {}) }));
-  const [first, setFirst] = useState(null);
-
-  useEffect(() => { adm('/apps').then((r) => setFirst((r.list || []).find((a) => a.tracked) || null)); }, []);
 
   const space = c.locked ? (c.spaceName || c.masked || 'Fixed space') : (c.spaceName || c.masked || '');
   const connected = Boolean(c.configured && (c.mode !== 'user' || c.userEmail));
@@ -359,7 +356,8 @@ function ChatStep({ setup, refresh, onBack, onNext, toast }) {
     await refresh();
   };
 
-  const appName = first?.name || 'Telfon - Calls & Chats';
+  // Sample app for the preview, never a real app name.
+  const appName = 'Orbit Notes';
 
   return (
     <>
@@ -412,7 +410,7 @@ function ChatStep({ setup, refresh, onBack, onNext, toast }) {
               <div className="flex flex-col gap-2 p-[14px] rounded-[12px] bg-surface">
                 <div className="text-[14px] font-extrabold">☑️ Approved · ready to publish</div>
                 <div className="text-[12.5px] font-semibold text-ink-2">{appName} · Google Play</div>
-                <div className="text-[12px] text-ink-3">Production 193 (1.3.80) · from In review · review took 6h 40m</div>
+                <div className="text-[12px] text-ink-3">Production 2.4.0 (128) · from In review · review took 6h 40m</div>
                 <span className="w-fit px-2.5 py-1 rounded-[8px] ring-1 ring-inset ring-line text-[12px] font-bold text-blue">Open in Review Radar</span>
               </div>
             </div>

@@ -1,6 +1,6 @@
 // Shared shell for the sign-in, forgot-password and reset-password screens (pen.dev frame "Login").
 import { TriangleAlert } from 'lucide-react';
-import { PhoneCall } from '@phosphor-icons/react';
+import { RocketLaunch } from '@phosphor-icons/react';
 import { LogoTile, cx } from '../../components/ui.jsx';
 
 const HATCH = 'repeating-linear-gradient(-60deg, rgba(255,255,255,.18) 0 1.5px, transparent 1.5px 6px)';
@@ -15,9 +15,9 @@ function BrandArt() {
           style={{ height: `${(h / 380) * 100}%`, backgroundImage: k === 'h' ? HATCH : undefined }} />
       ))}
       <div className="absolute left-[35%] top-5 flex items-center gap-[10px] py-[10px] pl-[10px] pr-[14px] bg-white rounded-[14px] shadow-[0_12px_32px_rgba(0,0,0,.4)]">
-        <span className="size-8 rounded-[9px] inline-flex items-center justify-center text-white" style={{ background: 'linear-gradient(180deg,#4F8BFF,#1D4ED8)' }}><PhoneCall size={18} weight="regular" /></span>
+        <span className="size-8 rounded-[9px] inline-flex items-center justify-center text-white" style={{ background: 'linear-gradient(180deg,#4F8BFF,#1D4ED8)' }}><RocketLaunch size={18} weight="regular" /></span>
         <span className="flex flex-col gap-[3px]">
-          <span className="text-[12.5px] font-extrabold text-[#0F110C] whitespace-nowrap">Telfon · 1.3.80 (193)</span>
+          <span className="text-[12.5px] font-extrabold text-[#0F110C] whitespace-nowrap">Orbit Notes · 2.4.0 (128)</span>
           <span className="flex items-center gap-[5px] text-[11.5px] font-bold text-[#15803D] whitespace-nowrap"><span className="size-[6px] rounded-full bg-[#15803D]" />Approved · ready to publish</span>
         </span>
       </div>
