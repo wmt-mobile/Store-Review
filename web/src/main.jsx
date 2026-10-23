@@ -18,6 +18,7 @@ const NotificationSettings = lazy(() => import('./pages/NotificationSettings.jsx
 const Login = lazy(() => import('./pages/Login.jsx'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword.jsx'));
 const Onboarding = lazy(() => import('./pages/Onboarding.jsx'));
+const Landing = lazy(() => import('./pages/Landing.jsx'));
 
 function Dashboard() {
   return (
@@ -34,7 +35,7 @@ createRoot(document.getElementById('root')).render(
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Suspense fallback={null}>
         <Routes>
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/onboarding" element={<Onboarding />} />

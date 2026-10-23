@@ -220,7 +220,7 @@ app.set('trust proxy', 1);
 
 if (SERVERLESS && MODE === 'supabase') {
   app.use(async (req, res, next) => {
-    if (req.path === '/health' || req.path === '/login' || req.path === '/reset-password' || req.path.startsWith('/api/cron/') || req.path.startsWith('/assets/') || /^\/[\w.-]+\.(svg|png|js|webmanifest)$/.test(req.path)) return next();
+    if (req.path === '/health' || req.path === '/login' || req.path === '/reset-password' || req.path === '/' || req.path.startsWith('/api/cron/') || req.path.startsWith('/assets/') || req.path.startsWith('/landing/') || /^\/[\w.-]+\.(svg|png|js|webmanifest)$/.test(req.path)) return next();
     try {
       if (Date.now() - loadedAt > 3000) await refreshState();
     } catch (e) {
@@ -339,7 +339,7 @@ app.get('/status', (req, res) => {
 
 const needsOnboarding = () => MODE === 'supabase' && (!registry.list().length || !settings.bot?.onboarded);
 
-app.get('/', (_req, res) => res.redirect(useLogin() ? '/login' : '/dashboard'));
+app.get('/', (_req, res) => (SPA_INDEX ? sendSpa(res) : res.redirect('/login')));
 app.get(['/dashboard', '/dashboard/*'], requireDashboard, (_req, res) => {
   if (needsOnboarding()) return res.redirect('/onboarding');
   sendSpa(res, 'page.html');
