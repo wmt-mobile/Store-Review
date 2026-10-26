@@ -66,7 +66,12 @@ function AccountStep({ setup, refresh, onNext, toast, initialStore }) {
     try { await navigator.clipboard.writeText(bot.clientEmail); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { toast(bot.clientEmail); }
   };
 
-  const pick = (s) => { if (s !== store) { setStore(s); setFile(null); setChecks(null); } };
+  const pick = (s) => {
+    if (s === store) return;
+    setStore(s); setFile(null); setChecks(null);
+    // a new Play client is a different company — don't pre-fill our own name
+    if (s === 'google' && name === 'WebMobTechnologies') setName('');
+  };
 
   const read = (f) => {
     if (!f) return;
