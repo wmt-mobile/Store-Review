@@ -1,7 +1,7 @@
 // Setup wizard (pen.dev "Onboarding 1–4"): connect accounts → choose apps → Google Chat → done.
 // Same server flow as the old src/dashboard/onboarding.html, on /api/admin.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Lightbulb, FileKey, Upload, Search, Check, Bot, Hash, ChevronsUpDown, Send, Trash2, Plus, Wallet, LayoutGrid, MessageSquare, Timer, ArrowRight, PartyPopper, Box, X } from 'lucide-react';
+import { Lightbulb, FileKey, Upload, Search, Check, Copy, Bot, Hash, ChevronsUpDown, Send, Trash2, Plus, Wallet, LayoutGrid, MessageSquare, Timer, ArrowRight, PartyPopper, Box, X } from 'lucide-react';
 import { AppleLogo, GooglePlayLogo } from '@phosphor-icons/react';
 import { Logo, AppIcon, Pill, Toggle, Spinner, cx } from '../components/ui.jsx';
 import { adm, Stepper, StepHead, Footer, Field, TextInput, Checks } from './onboarding/parts.jsx';
@@ -30,7 +30,16 @@ const HELP = {
     <>IAM → Service accounts → Create → Keys → Add key → JSON.</>,
     <>In Play Console → Users and permissions, invite that email with “View app information”.</>,
   ],
+  // shared bot: nothing to upload, just invite the one bot email in the client's Play Console
+  bot: [
+    <>Open the client’s <b>Play Console → Users and permissions → Invite new users</b>.</>,
+    <>Paste the bot email shown here.</>,
+    <>Under <b>App permissions</b>, add all apps (or use <b>Account permissions</b> so new apps are included).</>,
+    <>Tick <b>View app information</b>, <b>View app quality information</b> and <b>Release apps to testing tracks</b>. Send the invite.</>,
+    <>Come back and press <b>Verify & continue</b>. The new apps are added to this account.</>,
+  ],
 };
+const PERMS = ['View app information and download bulk reports (read-only)', 'View app quality information (read-only)', 'Release apps to testing tracks'];
 const GUIDE = {
   apple: 'https://appstoreconnect.apple.com/access/integrations/api',
   google: 'https://play.google.com/console/u/0/developers/users-and-permissions',
@@ -38,7 +47,7 @@ const GUIDE = {
 
 function AccountStep({ setup, refresh, onNext, toast, initialStore }) {
   const [store, setStore] = useState(initialStore || 'apple');
-  const [name, setName] = useState('WebMobTechnologies');
+  const [name, setName] = useState(initialStore === 'google' ? '' : 'WebMobTechnologies');
   const [issuer, setIssuer] = useState('');
   const [keyId, setKeyId] = useState('');
   const [dev, setDev] = useState('');
@@ -49,6 +58,13 @@ function AccountStep({ setup, refresh, onNext, toast, initialStore }) {
   const inp = useRef(null);
   const apple = store === 'apple';
   const accounts = setup.accounts || [];
+  const bot = setup.playBot?.configured ? setup.playBot : null;
+  const [ownKey, setOwnKey] = useState(false);
+  const useBot = !apple && bot && !ownKey;
+  const [copied, setCopied] = useState(false);
+  const copyBot = async () => {
+    try { await navigator.clipboard.writeText(bot.clientEmail); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { toast(bot.clientEmail); }
+  };
 
   const pick = (s) => { if (s !== store) { setStore(s); setFile(null); setChecks(null); } };
 
@@ -81,12 +97,16 @@ function AccountStep({ setup, refresh, onNext, toast, initialStore }) {
     if (apple) {
       Object.assign(body, { issuerId: issuer.trim(), keyId: keyId.trim(), privateKey: file?.text });
       if (!body.issuerId || !body.keyId || !body.privateKey) return toast('Add the Issuer ID, Key ID and the .p8 file');
+    } else if (useBot) {
+      Object.assign(body, { developerId: dev.trim() });
+      if (!body.name) return toast('Add the account (client) name');
     } else {
       Object.assign(body, { serviceAccountJson: file?.text, developerId: dev.trim() });
       if (!body.serviceAccountJson) return toast('Add the service-account JSON file');
     }
     setBusy(true);
     const pending = apple ? ['Private key (.p8) is valid', 'Signed API token (ES256)', 'Connected to App Store Connect', 'Listing apps']
+      : useBot ? ['Play bot key is set up', 'Signed in to Google', 'Play Developer Reporting API reachable', 'Looking for this client’s apps', 'Can read release tracks']
       : ['Service-account JSON is valid', 'Signed in to Google', 'Play Developer Reporting API reachable', 'Listing apps', 'Can read release tracks'];
     let i = 1;
     setChecks({ running: true, items: [{ label: pending[0], ok: null }] });
@@ -138,7 +158,7 @@ function AccountStep({ setup, refresh, onNext, toast, initialStore }) {
       <div className="flex flex-col sm:flex-row gap-3" role="radiogroup" aria-label="Store">
         {[
           { id: 'apple', title: 'App Store Connect', desc: 'API key (.p8) + Issuer ID', I: AppleLogo },
-          { id: 'google', title: 'Google Play Console', desc: 'Service-account JSON key', I: GooglePlayLogo },
+          { id: 'google', title: 'Google Play Console', desc: bot ? 'Invite the bot email — no key needed' : 'Service-account JSON key', I: GooglePlayLogo },
         ].map((o) => {
           const on = store === o.id;
           return (
@@ -158,7 +178,7 @@ function AccountStep({ setup, refresh, onNext, toast, initialStore }) {
       <div className="flex flex-col lg:flex-row gap-6">
         <div className="flex-1 min-w-0 flex flex-col gap-4">
           <Field label="Account name">
-            <TextInput mono value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. WebMobTechnologies" />
+            <TextInput mono value={name} onChange={(e) => setName(e.target.value)} placeholder={useBot ? 'Client name, e.g. arkIQ LLP' : 'e.g. WebMobTechnologies'} />
           </Field>
           {apple ? (
             <>
@@ -170,6 +190,22 @@ function AccountStep({ setup, refresh, onNext, toast, initialStore }) {
               </Field>
             </>
           ) : null}
+          {useBot ? (
+            <>
+              <Field label="Bot email — invite this in the client’s Play Console">
+                <div className="w-full flex items-center gap-3 p-[14px] rounded-[12px] bg-surface-2">
+                  <span className="size-9 shrink-0 rounded-[10px] bg-accent text-accent-ink inline-flex items-center justify-center"><Bot size={18} /></span>
+                  <span className="flex-1 min-w-0 font-mono text-[13px] font-semibold break-all">{bot.clientEmail}</span>
+                  <button type="button" onClick={copyBot} className="h-8 shrink-0 inline-flex items-center gap-1.5 px-3 rounded-[10px] bg-primary text-on-primary text-[12.5px] font-bold">{copied ? <Check size={14} /> : <Copy size={14} />}{copied ? 'Copied' : 'Copy'}</button>
+                </div>
+              </Field>
+              <Field label="Permissions to tick">
+                <div className="rounded-[14px] ring-1 ring-inset ring-line divide-y divide-line overflow-hidden">
+                  {PERMS.map((p) => <div key={p} className="flex items-center gap-2.5 px-[14px] py-[11px] text-[13.5px] font-semibold"><Check size={15} className="text-green shrink-0" />{p}</div>)}
+                </div>
+              </Field>
+            </>
+          ) : (
           <Field label={apple ? 'Private key (.p8)' : 'Service-account key (JSON)'}>
             <input ref={inp} type="file" accept={apple ? '.p8' : '.json,application/json'} hidden onChange={(e) => { read(e.target.files[0]); e.target.value = ''; }} />
             {file ? (
@@ -194,6 +230,23 @@ function AccountStep({ setup, refresh, onNext, toast, initialStore }) {
               </button>
             )}
           </Field>
+          )}
+          {!apple && !bot && file?.valid && (
+            <button type="button" onClick={async () => {
+              const r = await adm('/play-bot', { method: 'PUT', body: { serviceAccountJson: file.text } });
+              if (!r.ok) return toast(r.error || 'Could not save the bot key');
+              toast(`Saved ${r.clientEmail} as the shared Play bot`);
+              setFile(null);
+              await refresh();
+            }} className="-mt-1 w-fit text-[12.5px] font-bold text-accent-text hover:underline">
+              Save this as the shared Play bot (use it for every client, no JSON next time) →
+            </button>
+          )}
+          {!apple && bot && (
+            <button type="button" onClick={() => { setOwnKey((v) => !v); setFile(null); setChecks(null); }} className="-mt-1 w-fit text-[12.5px] font-bold text-ink-3 hover:text-ink">
+              {ownKey ? '← Use the shared bot instead' : 'This client needs its own service-account JSON instead?'}
+            </button>
+          )}
           {!apple && (
             <Field label="Play developer ID (optional)" hint="From the Play Console URL (…/developers/this-number/…). Used for direct links.">
               <TextInput mono value={dev} onChange={(e) => setDev(e.target.value)} placeholder="1234567890123456789" autoComplete="off" />
@@ -202,8 +255,8 @@ function AccountStep({ setup, refresh, onNext, toast, initialStore }) {
         </div>
 
         <aside className="w-full lg:w-[320px] h-fit flex flex-col gap-[14px] p-5 rounded-[16px] bg-accent-soft">
-          <div className="flex items-center gap-2 text-[14px] font-extrabold"><Lightbulb size={17} />Where do I find these?</div>
-          {HELP[store].map((t, i) => (
+          <div className="flex items-center gap-2 text-[14px] font-extrabold"><Lightbulb size={17} />{useBot ? 'Add the bot to a client' : 'Where do I find these?'}</div>
+          {HELP[useBot ? 'bot' : store].map((t, i) => (
             <div key={i} className="flex items-start gap-[10px]">
               <span className="size-[22px] shrink-0 rounded-full bg-accent text-accent-ink inline-flex items-center justify-center text-[11px] font-extrabold">{i + 1}</span>
               <span className="text-[13.5px] leading-5 font-medium">{t}</span>

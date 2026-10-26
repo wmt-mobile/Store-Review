@@ -85,7 +85,7 @@ Locally, the built-in scheduler polls on its own. Set `NO_SCHEDULER=true` if the
 ## Adding accounts
 Admin → Setup → **Add account** opens the onboarding wizard:
 - **Apple:** upload the `.p8`; the Key ID comes from the file name; add the Issuer ID.
-- **Google Play:** upload the service-account JSON. Invite that email in Play Console with *View app information*, *View app quality information* and *Release apps to testing tracks*.
+- **Google Play:** one shared bot service account (`app-review-bot@playstore-review-511513.iam.gserviceaccount.com`) is used for every client. Its JSON is stored once (encrypted, `settings.play_bot`). To add a client: invite the bot email in their Play Console → Users and permissions with *View app information*, *View app quality information* and *Release apps to testing tracks*, then add the account with just its name. The bot's newly visible apps are assigned to that account; **Check for new apps** on the account card picks up later ones. A client can still use its own JSON if needed.
 
 Each key is checked step by step before it is saved.
 

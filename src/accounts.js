@@ -107,12 +107,81 @@ export async function verifyGoogle({ serviceAccountJson }) {
   return { ok: apps.length > 0, steps, apps, sa };
 }
 
+/** The one Play service account ("bot") shared by every client: parse + validate its JSON. */
+export function parsePlayBot(json) {
+  const sa = typeof json === 'string' ? JSON.parse(json) : json;
+  if (sa?.type !== 'service_account' || !sa.client_email || !sa.private_key) throw new Error('Not a Google service-account key file');
+  return sa;
+}
+
+/**
+ * Shared-bot Play account: the bot is invited to the client's Play Console, so it now sees that
+ * client's apps. "New" apps = everything the bot sees that no other Play account owns yet.
+ */
+export async function verifySharedGoogle(sa, owned = new Set()) {
+  const steps = [];
+  let apps = [];
+  if (!sa) {
+    steps.push(step('Play bot key is set up', false, 'No shared Play bot key yet', 'Upload the bot’s service-account JSON once in Setup → Play bot.'));
+    return { ok: false, steps, apps, sa: null };
+  }
+  steps.push(step('Play bot key is set up', true, sa.client_email));
+  const auth = new google.auth.GoogleAuth({
+    credentials: sa,
+    scopes: ['https://www.googleapis.com/auth/androidpublisher', 'https://www.googleapis.com/auth/playdeveloperreporting'],
+  });
+  try {
+    await auth.getAccessToken();
+    steps.push(step('Signed in to Google', true));
+  } catch (e) {
+    steps.push(step('Signed in to Google', false, errText(e), hintFor('google', e)));
+    return { ok: false, steps, apps, sa };
+  }
+  let visible = [];
+  try {
+    const reporting = google.playdeveloperreporting({ version: 'v1beta1', auth });
+    let pageToken;
+    do {
+      const { data } = await reporting.apps.search({ pageSize: 1000, pageToken });
+      visible.push(...(data.apps || []).map((a) => ({ id: a.packageName, name: a.displayName || a.packageName, bundleId: a.packageName })));
+      pageToken = data.nextPageToken;
+    } while (pageToken);
+    steps.push(step('Play Developer Reporting API reachable', true, `The bot can see ${visible.length} app${visible.length === 1 ? '' : 's'} in total`));
+  } catch (e) {
+    steps.push(step('Play Developer Reporting API reachable', false, errText(e), hintFor('google', e)));
+    return { ok: false, steps, apps, sa };
+  }
+  apps = visible.filter((a) => !owned.has(a.id));
+  steps.push(
+    step(`Found ${apps.length} new app${apps.length === 1 ? '' : 's'} for this account`, apps.length > 0, apps.slice(0, 6).map((a) => a.name).join(', '),
+      apps.length ? null : `No new apps yet. Invite ${sa.client_email} in this client’s Play Console → Users and permissions with access to all apps, then check again. A new invite can take a few minutes (sometimes longer) to reach the API.`)
+  );
+  if (apps.length) {
+    try {
+      const publisher = google.androidpublisher({ version: 'v3', auth });
+      const edit = await publisher.edits.insert({ packageName: apps[0].id, requestBody: {} });
+      await publisher.edits.delete({ packageName: apps[0].id, editId: edit.data.id }).catch(() => {});
+      steps.push(step('Can read release tracks', true, 'Opened and discarded a read-only edit'));
+    } catch (e) {
+      steps.push(step('Can read release tracks', false, errText(e), 'Give the bot “Release apps to testing tracks” in this client’s Play Console.'));
+      return { ok: false, steps, apps, sa };
+    }
+  }
+  return { ok: apps.length > 0, steps, apps, sa };
+}
+
 export class AccountRegistry {
   constructor() {
     this.items = [];
   }
 
   async load() {
+    const [bot] = await db.select('settings', { key: 'eq.play_bot' }).catch(() => []);
+    try {
+      this.playBot = bot?.value_enc ? parsePlayBot(decrypt(bot.value_enc)) : null;
+    } catch {
+      this.playBot = null;
+    }
     const rows = await db.select('accounts', { order: 'created_at.asc' });
     this.items = rows.map((r) => this.fromRow(r));
     return this.items;
@@ -125,6 +194,15 @@ export class AccountRegistry {
         a.keyId = r.config?.keyId;
         a.issuerId = r.config?.issuerId;
         a.privateKey = decrypt(r.secret_enc);
+      } else if (r.config?.shared) {
+        a.shared = true;
+        a.packages = r.config.packages || [];
+        a.serviceAccount = this.playBot || null;
+        a.clientEmail = this.playBot?.client_email || r.config?.clientEmail;
+        if (!this.playBot) {
+          a.status = 'error';
+          a.decryptError = 'The shared Play bot key is missing — upload it in Setup → Play bot';
+        }
       } else {
         a.serviceAccount = JSON.parse(decrypt(r.secret_enc) || 'null');
         a.clientEmail = r.config?.clientEmail;
@@ -159,13 +237,48 @@ export class AccountRegistry {
       issuerId: a.issuerId,
       clientEmail: a.clientEmail,
       developerId: a.developerId,
+      shared: Boolean(a.shared),
+      packages: a.shared ? a.packages : undefined,
       createdAt: a.createdAt,
       decryptError: a.decryptError || null,
     };
   }
 
+  /** Bot JSON → verify sign-in → save encrypted as settings.play_bot. Shared accounts pick it up on reload. */
+  async setPlayBot(json) {
+    const sa = parsePlayBot(json);
+    const auth = new google.auth.GoogleAuth({ credentials: sa, scopes: ['https://www.googleapis.com/auth/playdeveloperreporting'] });
+    await auth.getAccessToken();
+    await db.upsert('settings', [{ key: 'play_bot', value: { clientEmail: sa.client_email, projectId: sa.project_id || null, setAt: new Date().toISOString() }, value_enc: encrypt(JSON.stringify(sa)) }], 'key', { returning: false });
+    this.playBot = sa;
+    for (const a of this.items) if (a.shared) resetPlayClient(a.id);
+    await this.load();
+    return sa;
+  }
+
+  /** Every Play package some account already owns (shared lists + apps discovered by own-key accounts). */
+  ownedPlay(extra = []) {
+    const s = new Set(extra);
+    for (const a of this.items) if (a.shared) for (const p of a.packages || []) s.add(p);
+    return s;
+  }
+
+  /** Shared account: add whatever new apps the bot can now see. */
+  async claimPlay(id, ownedExtra = []) {
+    const a = this.get(id);
+    if (!a?.shared) return { account: null, verification: { ok: false, steps: [step('Shared Play account', false, 'Only accounts that use the shared bot can do this')] } };
+    const verification = await verifySharedGoogle(this.playBot, this.ownedPlay(ownedExtra));
+    if (!verification.ok) return { account: null, verification };
+    const [row] = await db.select('accounts', { id: `eq.${id}` });
+    const packages = [...new Set([...(row.config?.packages || []), ...verification.apps.map((x) => x.id)])];
+    const [updated] = await db.update('accounts', { id: `eq.${id}` }, { config: { ...row.config, packages }, status: 'verified', error: null, error_at: null });
+    Object.assign(a, this.fromRow(updated));
+    resetPlayClient(id);
+    return { account: a, verification };
+  }
+
   /** Verify credentials and save. Returns { account, verification }. */
-  async add(input) {
+  async add(input, { ownedPlay = [] } = {}) {
     const store = input.store === 'google' ? 'google' : 'apple';
     const name = String(input.name || '').trim() || (store === 'apple' ? 'Apple account' : 'Play account');
     let verification;
@@ -175,6 +288,11 @@ export class AccountRegistry {
       verification = await verifyApple(input);
       config = { keyId: input.keyId?.trim(), issuerId: input.issuerId?.trim() };
       secret = input.privateKey?.trim();
+    } else if (!input.serviceAccountJson) {
+      // shared bot: no JSON — just the apps the bot newly sees after the client invited it
+      verification = await verifySharedGoogle(this.playBot, this.ownedPlay(ownedPlay));
+      config = { shared: true, clientEmail: this.playBot?.client_email, developerId: input.developerId?.trim() || undefined, packages: verification.apps.map((x) => x.id) };
+      secret = null;
     } else {
       verification = await verifyGoogle(input);
       config = { clientEmail: verification.sa?.client_email, developerId: input.developerId?.trim() || undefined };
@@ -205,6 +323,7 @@ export class AccountRegistry {
   async replaceSecret(id, input) {
     const a = this.get(id);
     if (!a) return { account: null, verification: { ok: false, steps: [{ label: 'Find account', ok: false, detail: 'not found' }] } };
+    if (a.shared) return { account: null, verification: { ok: false, steps: [step('Upload new JSON', false, 'This account uses the shared Play bot — replace the bot key in Setup instead')] } };
     const [row] = await db.select('accounts', { id: `eq.${id}` });
     let verification;
     let config;

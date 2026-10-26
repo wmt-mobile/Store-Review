@@ -28,6 +28,8 @@ export async function discoverPlayApps(account, tracker) {
   do {
     const { data } = await reporting.apps.search({ pageSize: 1000, pageToken });
     for (const a of data.apps || []) {
+      // the shared bot sees every client's apps — each shared account keeps only its own
+      if (account.shared && !(account.packages || []).includes(a.packageName)) continue;
       keys.push(
         tracker.registerApp({
           store: 'google',

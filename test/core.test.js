@@ -368,3 +368,14 @@ test('review time stops at approval, not when the build goes live', async () => 
   const dash = buildDashboard(store.data, [{ id: 'p', name: 'Play', store: 'google' }]);
   assert.equal(dash.apps.find((a) => a.key === key).channels.production.reviewMs, 6 * H);
 });
+
+test('play bot: packages owned by shared accounts and own-key accounts are never claimed twice', async () => {
+  const { AccountRegistry } = await import('../src/accounts.js');
+  const r = new AccountRegistry();
+  r.items = [
+    { id: 'a', store: 'google', shared: true, packages: ['com.one', 'com.two'] },
+    { id: 'b', store: 'google', shared: true, packages: ['com.three'] },
+    { id: 'c', store: 'google' },
+  ];
+  assert.deepEqual([...r.ownedPlay(['com.own'])].sort(), ['com.one', 'com.own', 'com.three', 'com.two']);
+});

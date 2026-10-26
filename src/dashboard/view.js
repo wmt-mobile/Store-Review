@@ -113,6 +113,7 @@ export function buildDashboard(data, accounts, { now = Date.now(), stuckHours = 
         issuerHint: tail(a.issuerId),
         clientEmail: a.clientEmail || a.serviceAccount?.client_email || null,
         developerId: a.developerId || null,
+        shared: Boolean(a.shared),
         createdAt: a.createdAt ? Date.parse(a.createdAt) || a.createdAt : null,
         intervalMin,
         nextCheckAt: st.lastPollAt && intervalMin ? st.lastPollAt + intervalMin * 60_000 : null,

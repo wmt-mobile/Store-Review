@@ -165,6 +165,10 @@ export function adminRouter(ctx) {
     };
   };
 
+  // Play packages already owned by accounts that use their own JSON key (shared ones track theirs in config)
+  const ownedByOwnKey = () => Object.values(store.data.apps).filter((x) => x.store === 'google' && !registry.get(x.accountId)?.shared).map((x) => x.bundleOrPackage || x.appId);
+  const playBotView = () => ({ configured: Boolean(registry.playBot), clientEmail: registry.playBot?.client_email || null, projectId: registry.playBot?.project_id || null });
+
   r.get('/setup', (_req, res) => {
     res.json({
       mode: 'supabase',
@@ -173,6 +177,7 @@ export function adminRouter(ctx) {
       chat: { configured: Boolean(config.chatWebhook), masked: maskUrl(config.chatWebhook), mode: settings.chat?.mode || (config.chatWebhook ? 'webhook' : null), spaceName: settings.chat?.spaceName || null, appEmail: chatAppEmail(), userEmail: chatUserEmail(), hasOauthClient: Boolean(config.gmail.clientId), locked: Boolean(config.chatSpaceLocked) },
       gmail: { enabled: gmailEnabled(), lastPollAt: store.data.accounts.gmail?.lastPollAt || null, error: store.data.accounts.gmail?.error || null },
       accounts: registry.list().map(accountState),
+      playBot: playBotView(),
       apps: { total: Object.keys(store.data.apps).length, tracked: Object.values(store.data.apps).filter((a) => !a.hidden).length },
     });
   });
@@ -181,7 +186,7 @@ export function adminRouter(ctx) {
   r.post('/accounts', async (req, res) => {
     const b = req.body || {};
     try {
-      const { account, verification } = await registry.add(b);
+      const { account, verification } = await registry.add(b, { ownedPlay: ownedByOwnKey() });
       if (!account) {
         audit('account.verify_failed', { actor: currentActor, target: b.name || b.store, details: { store: b.store, steps: verification.steps.filter((s) => !s.ok) }, level: 'warn' });
         return res.status(422).json({ ok: false, steps: verification.steps });
@@ -190,6 +195,33 @@ export function adminRouter(ctx) {
       res.json({ ok: true, steps: verification.steps, account: accountState(account), apps: verification.apps });
     } catch (e) {
       res.status(500).json({ ok: false, error: errText(e), steps: [{ label: 'Save account', ok: false, detail: errText(e) }] });
+    }
+  });
+
+  // ── shared Play bot (one service account invited to every client's Play Console) ──
+  r.get('/play-bot', (_req, res) => res.json(playBotView()));
+  r.put('/play-bot', async (req, res) => {
+    try {
+      const sa = await registry.setPlayBot(req.body?.serviceAccountJson);
+      audit('play_bot.updated', { actor: currentActor, target: sa.client_email, level: 'warn' });
+      res.json({ ok: true, ...playBotView() });
+    } catch (e) {
+      res.status(400).json({ ok: false, error: errText(e) });
+    }
+  });
+
+  // Shared account: pick up apps the bot can newly see (client added an app or just invited the bot)
+  r.post('/accounts/:id/claim', async (req, res) => {
+    try {
+      const { account, verification } = await registry.claimPlay(req.params.id, ownedByOwnKey());
+      if (!account) return res.status(422).json({ ok: false, steps: verification.steps, error: verification.steps.find((x) => !x.ok)?.hint || verification.steps.find((x) => !x.ok)?.detail });
+      await discoverAccount(account, tracker, { ...config, apps: [] });
+      await store.sync();
+      audit('account.apps_claimed', { actor: currentActor, target: account.name, details: { apps: verification.apps.map((x) => x.id) } });
+      runPoll(account);
+      res.json({ ok: true, steps: verification.steps, apps: verification.apps, account: accountState(account) });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: errText(e) });
     }
   });
 
