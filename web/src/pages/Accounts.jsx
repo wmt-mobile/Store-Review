@@ -286,14 +286,14 @@ export default function Accounts() {
       <PageHead
         title="Accounts"
         sub={`Developer accounts the bot reads from · checked every ${every} minute${every === 1 ? '' : 's'}`}
-        actions={<Button as={Link} to="/onboarding" icon={Plus}>Connect account</Button>}
+        actions={<Button as={Link} to="/onboarding#add" icon={Plus}>Connect account</Button>}
       />
       {loading ? (
         <div className="grid gap-5 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"><Skeleton className="h-[480px] rounded-[20px]" /><Skeleton className="h-[480px] rounded-[20px]" /></div>
       ) : (
         <div className="grid gap-5 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 items-stretch">
           {accounts.map((a) => <AccountCard key={a.id} a={a} apps={apps.filter((x) => x.accountId === a.id)} onChanged={reload} />)}
-          <Link to="/onboarding" className="w-full min-h-[220px] flex flex-col gap-3 p-6 items-center justify-center text-center rounded-[20px] ring-[1.5px] ring-inset ring-ink-3 hover:bg-surface/60 transition">
+          <Link to="/onboarding#add" className="w-full min-h-[220px] flex flex-col gap-3 p-6 items-center justify-center text-center rounded-[20px] ring-[1.5px] ring-inset ring-ink-3 hover:bg-surface/60 transition">
             <span className="size-[52px] rounded-full bg-surface inline-flex items-center justify-center text-ink"><Plus size={22} /></span>
             <span className="text-[15px] font-extrabold text-ink">Connect another account</span>
             <span className="w-[220px] text-[13px] leading-[19px] font-medium text-ink-3">Apple .p8 API key, or invite the Play bot email in a client’s Play Console</span>

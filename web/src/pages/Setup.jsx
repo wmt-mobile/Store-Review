@@ -161,7 +161,7 @@ export default function Setup() {
               </Row>
             ))}
             {!setup.accounts?.length && <div className="pt-[14px] border-t border-line text-[13px] text-ink-3">No accounts yet.</div>}
-            <div><Button as={Link} to="/onboarding" variant="secondary" icon={Plus}>Connect account</Button></div>
+            <div><Button as={Link} to="/onboarding#add" variant="secondary" icon={Plus}>Connect account</Button></div>
           </SettingsCard>
         </div>
       </div>

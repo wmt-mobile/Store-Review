@@ -145,7 +145,7 @@ export function AccountsCard({ className }) {
       </div>
       <div className="grid gap-[14px] grid-cols-[repeat(auto-fit,minmax(230px,1fr))]">
         {accounts.map((a) => <Wallet key={a.id} a={a} />)}
-        {!accounts.length && <Link to="/onboarding" className="flex-1 h-[220px] rounded-[18px] ring-[1.5px] ring-dashed ring-line inline-flex items-center justify-center text-[13.5px] font-bold text-ink-2">+ Connect a developer account</Link>}
+        {!accounts.length && <Link to="/onboarding#add" className="flex-1 h-[220px] rounded-[18px] ring-[1.5px] ring-dashed ring-line inline-flex items-center justify-center text-[13.5px] font-bold text-ink-2">+ Connect a developer account</Link>}
       </div>
     </Card>
   );
