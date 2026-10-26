@@ -1,7 +1,7 @@
 // Accounts — wallet card per developer account, last 24 checks, recent check log (pen.dev frame SfgVU).
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, RefreshCw, KeyRound, Upload, PackagePlus, BadgeCheck, CircleAlert, MoreHorizontal, Pencil, Trash2, FileKey } from 'lucide-react';
+import { Plus, RefreshCw, KeyRound, Upload, ScanSearch, BadgeCheck, CircleAlert, MoreHorizontal, Pencil, Trash2, FileKey } from 'lucide-react';
 import { AppleLogo, GooglePlayLogo } from '@phosphor-icons/react';
 import { AppIcon, Button, Card, PageHead, Pill, Skeleton, cx } from '../components/ui.jsx';
 import { useData, useUi } from '../lib/store.jsx';
@@ -172,7 +172,7 @@ function AccountCard({ a, apps, onChanged }) {
         <div className="flex flex-wrap gap-[10px] pt-1.5">
           <Button variant={failing ? 'primary' : 'secondary'} icon={RefreshCw} className="flex-1 min-w-[140px]" loading={busy} onClick={reverify}>{failing ? 'Re-verify now' : 'Re-verify'}</Button>
           {a.shared
-            ? <Button variant="outline" icon={PackagePlus} className="flex-1 min-w-[150px]" loading={claiming} onClick={claim}>Check for new apps</Button>
+            ? <Button variant="outline" icon={ScanSearch} className="flex-1 min-w-[150px]" loading={claiming} onClick={claim}>Check for new apps</Button>
             : <Button variant="outline" icon={apple ? KeyRound : Upload} className="flex-1 min-w-[150px]" onClick={() => setRotate(true)}>{apple ? 'Rotate key' : 'Upload new JSON'}</Button>}
         </div>
       </div>
@@ -289,11 +289,11 @@ export default function Accounts() {
         actions={<Button as={Link} to="/onboarding" icon={Plus}>Connect account</Button>}
       />
       {loading ? (
-        <div className="flex flex-col lg:flex-row gap-5"><Skeleton className="h-[480px] flex-1 rounded-[20px]" /><Skeleton className="h-[480px] flex-1 rounded-[20px]" /></div>
+        <div className="grid gap-5 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"><Skeleton className="h-[480px] rounded-[20px]" /><Skeleton className="h-[480px] rounded-[20px]" /></div>
       ) : (
-        <div className="flex flex-col lg:flex-row gap-5 lg:items-stretch">
+        <div className="grid gap-5 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 items-stretch">
           {accounts.map((a) => <AccountCard key={a.id} a={a} apps={apps.filter((x) => x.accountId === a.id)} onChanged={reload} />)}
-          <Link to="/onboarding" className="lg:w-[300px] shrink-0 min-h-[220px] flex flex-col gap-3 p-6 items-center justify-center text-center rounded-[20px] ring-[1.5px] ring-inset ring-ink-3 hover:bg-surface/60 transition">
+          <Link to="/onboarding" className="w-full min-h-[220px] flex flex-col gap-3 p-6 items-center justify-center text-center rounded-[20px] ring-[1.5px] ring-inset ring-ink-3 hover:bg-surface/60 transition">
             <span className="size-[52px] rounded-full bg-surface inline-flex items-center justify-center text-ink"><Plus size={22} /></span>
             <span className="text-[15px] font-extrabold text-ink">Connect another account</span>
             <span className="w-[220px] text-[13px] leading-[19px] font-medium text-ink-3">Apple .p8 API key, or invite the Play bot email in a client’s Play Console</span>
