@@ -379,3 +379,27 @@ test('play bot: packages owned by shared accounts and own-key accounts are never
   ];
   assert.deepEqual([...r.ownedPlay(['com.own'])].sort(), ['com.one', 'com.own', 'com.three', 'com.two']);
 });
+
+test('first sighting of a build already in review uses the real start from earlier posts', async () => {
+  const { reviewRun } = await import('../src/prior-review.js');
+  const { tracker, store, sent } = mkTracker(false);
+  const key = tracker.registerApp({ store: 'google', accountId: 'p', appId: 'com.ark', name: 'arkIQ' });
+  tracker.registerApp({ store: 'google', accountId: 'p', appId: 'com.other', name: 'Other' });
+  const H = 3_600_000;
+  const now = Date.now();
+  const iso = (t) => new Date(t).toISOString();
+  const rows = [
+    { at: iso(now - 200 * H), details: { channel: 'production', version: '11 (1.0.2)', from: 'IN_REVIEW', to: 'READY_TO_PUBLISH' } },
+    { at: iso(now - 120 * H), details: { channel: 'production', version: '12 (1.0.3)', from: 'LIVE', to: 'SENT_FOR_REVIEW' } },
+    { at: iso(now - 116 * H), details: { channel: 'production', version: '12 (1.0.3)', from: 'SENT_FOR_REVIEW', to: 'IN_REVIEW' } },
+  ];
+  tracker.priorReview = async (app, channel, version) => reviewRun(rows, { store: app.store, channel, version });
+  await tracker.update(key, 'production', { version: '12 (1.0.3)', status: 'IN_REVIEW', at: now });
+  const c = store.data.channels[key].production;
+  assert.equal(c.submittedAt, now - 120 * H); // clock from "sent for review", not from now
+  assert.equal(c.since, now - 116 * H);
+  assert.equal(sent.length, 0); // "In review" was already posted for this version
+  assert.deepEqual(store.data.history[key].map((h) => h.to), ['IN_REVIEW', 'SENT_FOR_REVIEW']);
+  // a different version has no earlier posts → clock starts now
+  assert.equal(reviewRun(rows, { store: 'google', channel: 'production', version: '13 (1.0.4)' }), null);
+});

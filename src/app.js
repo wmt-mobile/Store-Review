@@ -7,6 +7,7 @@ import { Store, memoryStore } from './store.js';
 import { SupabaseStore, audit } from './db-store.js';
 import { supabaseEnabled } from './supabase.js';
 import { authEnabled, sessionFrom, setSession, clearSession, passwordLogin, requestPasswordReset, resetPassword } from './auth.js';
+import { priorReview } from './prior-review.js';
 import { AccountRegistry } from './accounts.js';
 import { adminRouter, loadSettings } from './admin-api.js';
 import { Tracker } from './tracker.js';
@@ -69,6 +70,7 @@ const tracker = new Tracker({
   store,
   accountById: findAccount,
   config,
+  priorReview: MODE === 'supabase' ? priorReview : null,
   onEvent: (type, e) => {
     if (type === 'status' && e.notify) queuePush(e);
     if (MODE !== 'supabase') return;

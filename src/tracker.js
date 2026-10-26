@@ -21,8 +21,9 @@ export class Tracker {
    * @param {object} deps.config  { silentFirstRun, chatWebhook, apps: overrides[] }
    * @param {Function} [deps.send] (message, {webhook, threadKey}) => Promise
    */
-  constructor({ store, accountById, config, send = safeSend, onEvent = () => {} }) {
+  constructor({ store, accountById, config, send = safeSend, onEvent = () => {}, priorReview = null }) {
     this.onEvent = onEvent;
+    this.priorReview = priorReview;
     this.store = store;
     this.accountById = accountById;
     this.config = config;
@@ -114,6 +115,16 @@ export class Tracker {
     const from = prev ? describe(app.store, channel, prev.status) : null;
     const versionChanged = prev && (prev.version || '') !== (version || '');
 
+    // First sighting of a build that is already waiting / in review: recover when it really started
+    // (earlier posts for the same version), instead of starting the clock now.
+    let prior = null;
+    if (!prev && !submittedAt && isPending(to.category) && this.priorReview) {
+      prior = await this.priorReview(app, channel, version).catch(() => null);
+      if (prior && prior.startAt < at) submittedAt = prior.startAt;
+      else prior = null;
+    }
+    const lastPrior = prior?.events[prior.events.length - 1];
+
     // submittedAt: start the clock when a review cycle begins, keep it through to the result
     let subAt = null;
     if (isPending(to.category)) {
@@ -125,7 +136,7 @@ export class Tracker {
     chans[channel] = {
       version: version || '',
       status,
-      since: at,
+      since: lastPrior?.to === status ? lastPrior.at : at,
       submittedAt: subAt,
       // review time stops at approval: approved → live keeps the time it took to get approved
       reviewMs: subAt && isTerminal(to.category)
@@ -136,7 +147,11 @@ export class Tracker {
     };
 
     const hist = (this.d.history[appKey] ||= []);
-    hist.unshift({ at, channel, version: version || '', from: prev?.status || null, to: status, reason: reason || null });
+    if (prior) {
+      for (const e of prior.events) if (!hist.some((h) => h.at === e.at && h.to === e.to)) hist.unshift({ at: e.at, channel, version: version || '', from: e.from, to: e.to, reason: null });
+      hist.sort((a, b) => b.at - a.at);
+    }
+    if (lastPrior?.to !== status) hist.unshift({ at, channel, version: version || '', from: prev?.status || null, to: status, reason: reason || null });
     if (hist.length > HISTORY_MAX) hist.length = HISTORY_MAX;
 
     // notify?
@@ -147,6 +162,8 @@ export class Tracker {
       notify = to.category !== 'none' && !(brandNewApp && to.category === 'live');
     }
     if (notify && from && from.category === to.category && from.label === to.label && !versionChanged) notify = false;
+    // already posted before (same version, same status) — don't post it twice
+    if (lastPrior?.to === status) notify = false;
     if (app.hidden || app.muted) notify = false;
     if (!NOTIFY_CHANNELS.has(channel) || SILENT_CATEGORIES.has(to.category)) notify = false;
     // Onboarding step 3 "Post these events" (prefs.chatEvents); every event posts unless switched off.
